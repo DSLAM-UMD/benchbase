@@ -464,11 +464,11 @@ public abstract class SQLUtil {
         }
 
 
-        try (ResultSet table_rs = md.getTables(catalog, schema, null, new String[]{"TABLE"})) {
+        try (ResultSet table_rs = md.getTables(catalog, schema, null, new String[]{"TABLE", "PARTITIONED TABLE"})) {
             while (table_rs.next()) {
 
                 String table_type = table_rs.getString("TABLE_TYPE");
-                if (!table_type.equalsIgnoreCase("TABLE")) {
+                if (!table_type.equalsIgnoreCase("TABLE") && !table_type.equalsIgnoreCase("PARTITIONED TABLE")) {
                     continue;
                 }
 
