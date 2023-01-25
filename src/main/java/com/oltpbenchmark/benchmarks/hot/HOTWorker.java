@@ -22,13 +22,13 @@ import com.oltpbenchmark.api.Procedure.UserAbortException;
 import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.hot.procedures.*;
-import com.oltpbenchmark.distributions.CounterGenerator;
-import com.oltpbenchmark.distributions.ZipfianGenerator;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.TextGenerator;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * HOTWorker Implementation
@@ -38,26 +38,26 @@ import java.sql.SQLException;
  */
 class HOTWorker extends Worker<HOTBenchmark> {
 
-    private final ZipfianGenerator readRecord;
-    private static CounterGenerator insertRecord;
-
     private final char[] data;
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
     private final String[] results = new String[HOTConstants.NUM_FIELDS];
+    private final Partition homePartition;
+    private final List<Partition> otherPartitions;
+    private final int mrpct;
 
     private final ReadModifyWriteRecord procReadModifyWriteRecord;
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, int init_record_count) {
         super(benchmarkModule, id);
         this.data = new char[benchmarkModule.fieldSize];
-        this.readRecord = new ZipfianGenerator(rng(), init_record_count);// pool for read keys
-
-        synchronized (HOTWorker.class) {
-            // We must know where to start inserting
-            if (insertRecord == null) {
-                insertRecord = new CounterGenerator(init_record_count);
+        this.homePartition = benchmarkModule.partitions.get(benchmarkModule.region);
+        this.otherPartitions = new ArrayList<>();
+        for (Partition p : benchmarkModule.partitions) {
+            if (p != this.homePartition) {
+                this.otherPartitions.add(p);
             }
         }
+        this.mrpct = benchmarkModule.mrpct;
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
         // everytime we want to execute a txn. This is important to do on 
@@ -77,10 +77,20 @@ class HOTWorker extends Worker<HOTBenchmark> {
     }
 
     private void readModifyWriteRecord(Connection conn) throws SQLException {
+        int[] keys = new int[4];
+        keys[0] = this.homePartition.nextHot(rng());
+        keys[1] = this.homePartition.nextCold(rng());
 
-        int keyname = readRecord.nextInt();
+        Partition partition = this.homePartition;
+        if (rng().nextInt(100) + 1 <= this.mrpct) {
+            int partitionIndex = rng().nextInt(this.otherPartitions.size());
+            partition = this.otherPartitions.get(partitionIndex);
+        }
+        keys[2] = partition.nextHot(rng());
+        keys[3] = partition.nextCold(rng());
+
         this.buildParameters();
-        this.procReadModifyWriteRecord.run(conn, keyname, this.params, this.results);
+        this.procReadModifyWriteRecord.run(conn, keys, this.params, this.results);
     }
 
     private void buildParameters() {
