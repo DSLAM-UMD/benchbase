@@ -30,7 +30,7 @@ import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class ReadModifyWriteRecord extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? FOR UPDATE"
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?"
     );
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
@@ -38,29 +38,30 @@ public class ReadModifyWriteRecord extends Procedure {
     );
 
     //FIXME: The value in ysqb is a byteiterator
-    public void run(Connection conn, int keyname, String[] fields, String[] results) throws SQLException {
+    public void run(Connection conn, int[] keynames, String[] fields, String[] results) throws SQLException {
 
-        // Fetch it!
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
-            stmt.setInt(1, keyname);
-            try (ResultSet r = stmt.executeQuery()) {
-                while (r.next()) {
-                    for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
-                        results[i] = r.getString(i + 1);
+        for (int k : keynames) {
+            try (PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
+                stmt.setInt(1, k);
+                try (ResultSet r = stmt.executeQuery()) {
+                    while (r.next()) {
+                        for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
+                            results[i] = r.getString(i + 1);
+                        }
                     }
                 }
+
             }
 
-        }
+            // Update that mofo
+            try (PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
+                stmt.setInt(11, k);
 
-        // Update that mofo
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
-            stmt.setInt(11, keyname);
-
-            for (int i = 0; i < fields.length; i++) {
-                stmt.setString(i + 1, fields[i]);
+                for (int i = 0; i < fields.length; i++) {
+                    stmt.setString(i + 1, fields[i]);
+                }
+                stmt.executeUpdate();
             }
-            stmt.executeUpdate();
         }
 
     }

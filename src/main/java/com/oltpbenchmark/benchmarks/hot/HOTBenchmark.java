@@ -24,6 +24,8 @@ import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWriteRecord;
 import com.oltpbenchmark.catalog.Table;
 import com.oltpbenchmark.util.SQLUtil;
+
+import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class HOTBenchmark extends BenchmarkModule {
@@ -42,18 +45,74 @@ public class HOTBenchmark extends BenchmarkModule {
      * The length in characters of each field
      */
     protected final int fieldSize;
+    protected final int region;
+    protected final int mrpct;
+    protected final List<Partition> partitions;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
 
+        this.partitions = new ArrayList<>();
+
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
-        if (workConf.getXmlConfig() != null && workConf.getXmlConfig().containsKey("fieldSize")) {
-            fieldSize = Math.min(workConf.getXmlConfig().getInt("fieldSize"), HOTConstants.MAX_FIELD_SIZE);
+        int region = 0;
+        int hot = 0;
+        int mrpct = 0;
+
+        XMLConfiguration xmlConfig = workConf.getXmlConfig();
+        if (xmlConfig != null) {
+            if (xmlConfig.containsKey("fieldSize")) {
+                fieldSize = Math.min(xmlConfig.getInt("fieldSize"), HOTConstants.MAX_FIELD_SIZE);
+            }
+
+            if (xmlConfig.containsKey("region")) {
+                region = xmlConfig.getInt("region");
+            }
+
+            if (xmlConfig.containsKey("hot")) {
+                hot = xmlConfig.getInt("hot");
+            }
+
+            if (xmlConfig.containsKey("partitions")) {
+                List<String> ranges = Arrays.asList(xmlConfig.getString("partitions").split("\\s*;\\s*"));
+                for (String range : ranges) {
+                    String[] pair = range.split("\\s*,\\s*");
+                    if (pair.length != 2) {
+                        throw new RuntimeException("Invalid range specification '" + range + "'");
+                    }
+                    Integer from = Integer.parseInt(pair[0]);
+                    Integer to = Integer.parseInt(pair[1]);
+                    if (from >= to) {
+                        throw new RuntimeException("Empty range [" + from + ", " + to + ")");
+                    }
+                    this.partitions.add(new Partition(from, to, hot));
+                }
+            } else {
+                this.partitions.add(new Partition(0, HOTConstants.RECORD_COUNT, hot));
+            }
+
+            if (xmlConfig.containsKey("mrpct")) {
+                mrpct = xmlConfig.getInt("mrpct");
+            }
         }
+
         this.fieldSize = fieldSize;
         if (this.fieldSize <= 0) {
             throw new RuntimeException("Invalid HOT fieldSize '" + this.fieldSize + "'");
         }
+
+        this.region = region;
+        if (this.region < 0 || this.region >= this.partitions.size()) {
+            throw new RuntimeException("Region '" + this.region + "' is not within number of partitions");
+        }
+
+        for (Partition p : this.partitions) {
+            if (!p.isIncludedIn(0, HOTConstants.RECORD_COUNT)) {
+                throw new RuntimeException("Partition range " + p.toString() + " is not within valid range");
+            }
+        }
+
+        this.mrpct = mrpct;
     }
 
     @Override

@@ -13,13 +13,10 @@ CREATE TABLE usertable (
     field10  text
 ) PARTITION BY RANGE (ycsb_key);
 
-CREATE TABLE usertable_1 PARTITION OF usertable FOR VALUES FROM (0) TO (3332);
-CREATE TABLE usertable_2 PARTITION OF usertable FOR VALUES FROM (3333) TO (6665);
-CREATE TABLE usertable_3 PARTITION OF usertable FOR VALUES FROM (6666) TO (9999);
+CREATE TABLE usertable_1 PARTITION OF usertable FOR VALUES FROM (0) TO (10000);
+CREATE TABLE usertable_2 PARTITION OF usertable FOR VALUES FROM (10000) TO (20000);
 
 UPDATE pg_class SET relregion = 1 WHERE relname = 'usertable_1';
 UPDATE pg_class SET relregion = 1 WHERE relname = 'usertable_1_pkey';
 UPDATE pg_class SET relregion = 2 WHERE relname = 'usertable_2';
 UPDATE pg_class SET relregion = 2 WHERE relname = 'usertable_2_pkey';
-UPDATE pg_class SET relregion = 3 WHERE relname = 'usertable_3';
-UPDATE pg_class SET relregion = 3 WHERE relname = 'usertable_3_pkey';
