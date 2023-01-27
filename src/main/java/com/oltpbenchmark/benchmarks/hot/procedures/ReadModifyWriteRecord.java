@@ -30,7 +30,7 @@ import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class ReadModifyWriteRecord extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? FOR UPDATE"
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?"
     );
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
