@@ -4,7 +4,7 @@
     <!-- Connection details -->
     <type>POSTGRES</type>
     <driver>org.postgresql.Driver</driver>
-    <url>jdbc:postgresql://localhost:55432/benchbase?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
+    <url>jdbc:postgresql://localhost:55433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
     <username>cloud_admin</username>
     <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
