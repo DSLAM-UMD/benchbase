@@ -19,7 +19,7 @@ package com.oltpbenchmark.benchmarks.hot;
 
 public abstract class HOTConstants {
 
-    public static final int RECORD_COUNT = 20000;
+    public static final int RECORD_COUNT = 30000;
 
     public static final int NUM_FIELDS = 10;
 

@@ -10,15 +10,15 @@ public class Partition {
     public Partition(int from, int to, int hot) {
         this.from = from;
         this.to = to;
-        this.hot = Math.min(hot, to - from - 1);
+        this.hot = Math.min(hot, to - from);
     }
 
     public int nextHot(Random rng) {
-        return rng.nextInt(hot) + from;
+        return (hot <= 0) ? this.next(rng) : (rng.nextInt(hot) + from);
     }
 
     public int nextCold(Random rng) {
-        return rng.nextInt(to - from - hot) + from + hot;
+        return (to - from - hot <= 0) ? this.next(rng) : (rng.nextInt(to - from - hot) + from + hot);
     }
 
     public boolean isIncludedIn(int from, int to) {
@@ -27,5 +27,9 @@ public class Partition {
 
     public String toString() {
         return "[" + this.from + ", " + this.to + ")";
+    }
+
+    private int next(Random rng) {
+        return rng.nextInt(to - from) + from;
     }
 }

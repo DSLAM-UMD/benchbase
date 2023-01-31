@@ -9,16 +9,17 @@
     <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
     <batchsize>128</batchsize>
+    <terminals>3</terminals>
 
     <!-- Scalefactor in YCSB is *1000 the number of rows in the USERTABLE-->
     <scalefactor>1</scalefactor>
     
     <!-- Optional: Override the field size for each column in USERTABLE -->
     <fieldSize>8</fieldSize>
-    <!-- Optional: Number of hot keys -->
-    <hot>1000</hot>
+    <!-- Optional: Number of hot keys per partition -->
+    <hot>0</hot>
 
-    <partitions>0,10000;10000,20000</partitions>
+    <partitions>0,10000;10000,20000;20000,30000</partitions>
     <region>0</region>
     <!-- Percentage of multiregion transactions -->
     <mrpct>0</mrpct>
