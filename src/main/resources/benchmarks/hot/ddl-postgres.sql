@@ -1,6 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS pageinspect;
-CREATE EXTENSION IF NOT EXISTS remotexact;
-
 DROP TABLE IF EXISTS usertable;
 CREATE TABLE usertable (
     ycsb_key int PRIMARY KEY,
@@ -18,8 +15,4 @@ CREATE TABLE usertable (
 
 CREATE TABLE usertable_1 PARTITION OF usertable FOR VALUES FROM (0) TO (10000);
 CREATE TABLE usertable_2 PARTITION OF usertable FOR VALUES FROM (10000) TO (20000);
-
-UPDATE pg_class SET relregion = 1 WHERE relname = 'usertable_1';
-UPDATE pg_class SET relregion = 1 WHERE relname = 'usertable_1_pkey';
-UPDATE pg_class SET relregion = 2 WHERE relname = 'usertable_2';
-UPDATE pg_class SET relregion = 2 WHERE relname = 'usertable_2_pkey';
+CREATE TABLE usertable_3 PARTITION OF usertable FOR VALUES FROM (20000) TO (30000);

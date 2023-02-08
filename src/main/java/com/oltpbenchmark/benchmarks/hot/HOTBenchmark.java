@@ -106,12 +106,6 @@ public class HOTBenchmark extends BenchmarkModule {
             throw new RuntimeException("Region '" + this.region + "' is not within number of partitions");
         }
 
-        for (Partition p : this.partitions) {
-            if (!p.isIncludedIn(0, HOTConstants.RECORD_COUNT)) {
-                throw new RuntimeException("Partition range " + p.toString() + " is not within valid range");
-            }
-        }
-
         this.mrpct = mrpct;
     }
 
