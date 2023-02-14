@@ -45,7 +45,8 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final List<Partition> otherPartitions;
     private final int mrpct;
 
-    private final ReadModifyWriteRecord procReadModifyWriteRecord;
+    private final ReadModifyWrite procReadModifyWrite;
+    private final RMWLocalRORemote procRMWLocalRORemote;
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, int init_record_count) {
         super(benchmarkModule, id);
@@ -62,21 +63,24 @@ class HOTWorker extends Worker<HOTBenchmark> {
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
         // everytime we want to execute a txn. This is important to do on 
         // a client machine with not a lot of cores
-        this.procReadModifyWriteRecord = this.getProcedure(ReadModifyWriteRecord.class);
+        this.procReadModifyWrite = this.getProcedure(ReadModifyWrite.class);
+        this.procRMWLocalRORemote = this.getProcedure(RMWLocalRORemote.class);
     }
 
     @Override
     protected TransactionStatus executeWork(Connection conn, TransactionType nextTrans) throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
-        if (procClass.equals(ReadModifyWriteRecord.class)) {
-            readModifyWriteRecord(conn);
+        if (procClass.equals(ReadModifyWrite.class)) {
+            readModifyWrite(conn);
+        } else if (procClass.equals(RMWLocalRORemote.class)) {
+            rmwLocalRORemote(conn);
         }
 
         return (TransactionStatus.SUCCESS);
     }
 
-    private void readModifyWriteRecord(Connection conn) throws SQLException {
+    private void readModifyWrite(Connection conn) throws SQLException {
         int[] keys = new int[4];
         keys[0] = this.homePartition.nextHot(rng());
         keys[1] = this.homePartition.nextCold(rng());
@@ -90,7 +94,25 @@ class HOTWorker extends Worker<HOTBenchmark> {
         keys[3] = partition.nextCold(rng());
 
         this.buildParameters();
-        this.procReadModifyWriteRecord.run(conn, keys, this.params, this.results);
+        this.procReadModifyWrite.run(conn, keys, this.params, this.results);
+    }
+
+    private void rmwLocalRORemote(Connection conn) throws SQLException {
+        int[] local_keys = new int[2];
+        local_keys[0] = this.homePartition.nextHot(rng());
+        local_keys[1] = this.homePartition.nextCold(rng());
+
+        int[] remote_keys = new int[2];
+        Partition partition = this.homePartition;
+        if (rng().nextInt(100) + 1 <= this.mrpct) {
+            int partitionIndex = rng().nextInt(this.otherPartitions.size());
+            partition = this.otherPartitions.get(partitionIndex);
+        }
+        remote_keys[0] = partition.nextHot(rng());
+        remote_keys[1] = partition.nextCold(rng());
+
+        this.buildParameters();
+        this.procRMWLocalRORemote.run(conn, local_keys, remote_keys, this.params, this.results);
     }
 
     private void buildParameters() {

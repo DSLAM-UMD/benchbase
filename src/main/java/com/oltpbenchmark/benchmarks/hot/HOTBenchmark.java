@@ -21,7 +21,7 @@ import com.oltpbenchmark.WorkloadConfiguration;
 import com.oltpbenchmark.api.BenchmarkModule;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
-import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWriteRecord;
+import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWrite;
 import com.oltpbenchmark.catalog.Table;
 import com.oltpbenchmark.util.SQLUtil;
 
@@ -143,7 +143,7 @@ public class HOTBenchmark extends BenchmarkModule {
 
     @Override
     protected Package getProcedurePackageImpl() {
-        return ReadModifyWriteRecord.class.getPackage();
+        return ReadModifyWrite.class.getPackage();
     }
 
 }
