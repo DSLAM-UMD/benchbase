@@ -26,7 +26,8 @@ import java.util.List;
 public class TestHOTBenchmark extends AbstractTestBenchmarkModule<HOTBenchmark> {
 
     public static final List<Class<? extends Procedure>> PROCEDURE_CLASSES = List.of(
-        ReadModifyWriteRecord.class
+        ReadModifyWrite.class,
+        RMWLocalRORemote.class
     );
 
     @Override

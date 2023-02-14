@@ -28,7 +28,7 @@ import java.sql.SQLException;
 
 import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
-public class ReadModifyWriteRecord extends Procedure {
+public class ReadModifyWrite extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
             "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?"
     );
