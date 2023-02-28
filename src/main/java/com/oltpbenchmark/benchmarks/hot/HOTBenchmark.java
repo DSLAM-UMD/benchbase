@@ -34,7 +34,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class HOTBenchmark extends BenchmarkModule {
@@ -47,16 +46,15 @@ public class HOTBenchmark extends BenchmarkModule {
     protected final int fieldSize;
     protected final int region;
     protected final int mrpct;
-    protected final List<Partition> partitions;
+    protected int hot;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
 
-        this.partitions = new ArrayList<>();
+        this.hot = 0;
 
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
         int region = 0;
-        int hot = 0;
         int mrpct = 0;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
@@ -70,25 +68,7 @@ public class HOTBenchmark extends BenchmarkModule {
             }
 
             if (xmlConfig.containsKey("hot")) {
-                hot = xmlConfig.getInt("hot");
-            }
-
-            if (xmlConfig.containsKey("partitions")) {
-                List<String> ranges = Arrays.asList(xmlConfig.getString("partitions").split("\\s*;\\s*"));
-                for (String range : ranges) {
-                    String[] pair = range.split("\\s*,\\s*");
-                    if (pair.length != 2) {
-                        throw new RuntimeException("Invalid range specification '" + range + "'");
-                    }
-                    Integer from = Integer.parseInt(pair[0]);
-                    Integer to = Integer.parseInt(pair[1]);
-                    if (from >= to) {
-                        throw new RuntimeException("Empty range [" + from + ", " + to + ")");
-                    }
-                    this.partitions.add(new Partition(from, to, hot));
-                }
-            } else {
-                this.partitions.add(new Partition(0, HOTConstants.RECORD_COUNT, hot));
+                this.hot = xmlConfig.getInt("hot");
             }
 
             if (xmlConfig.containsKey("mrpct")) {
@@ -102,10 +82,6 @@ public class HOTBenchmark extends BenchmarkModule {
         }
 
         this.region = region;
-        if (this.region < 0 || this.region >= this.partitions.size()) {
-            throw new RuntimeException("Region '" + this.region + "' is not within number of partitions");
-        }
-
         this.mrpct = mrpct;
     }
 
@@ -114,20 +90,21 @@ public class HOTBenchmark extends BenchmarkModule {
         List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
         try {
             // LOADING FROM THE DATABASE IMPORTANT INFORMATION
-            // LIST OF USERS
+            // LIST OF PARTITIONS
             Table t = this.getCatalog().getTable("USERTABLE");
-            String userCount = SQLUtil.getMaxColSQL(this.workConf.getDatabaseType(), t, "ycsb_key");
+            String partitionRanges = SQLUtil.getPartitionRanges(this.workConf.getDatabaseType(), t);
 
             try (Connection metaConn = this.makeConnection();
                  Statement stmt = metaConn.createStatement();
-                 ResultSet res = stmt.executeQuery(userCount)) {
-                int init_record_count = 0;
+                 ResultSet res = stmt.executeQuery(partitionRanges)) {
+                List<Partition> partitions = new ArrayList<Partition>();
                 while (res.next()) {
-                    init_record_count = res.getInt(1);
+                    partitions.add(new Partition(res.getInt(2), res.getInt(3), this.hot));
+                    LOG.info(partitions.get(partitions.size() - 1).toString());
                 }
 
                 for (int i = 0; i < workConf.getTerminals(); ++i) {
-                    workers.add(new HOTWorker(this, i, init_record_count + 1));
+                    workers.add(new HOTWorker(this, i, partitions));
                 }
             }
         } catch (SQLException e) {

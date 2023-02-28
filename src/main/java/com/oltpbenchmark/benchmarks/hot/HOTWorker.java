@@ -48,12 +48,12 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final ReadModifyWrite procReadModifyWrite;
     private final RMWLocalRORemote procRMWLocalRORemote;
 
-    public HOTWorker(HOTBenchmark benchmarkModule, int id, int init_record_count) {
+    public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
         super(benchmarkModule, id);
         this.data = new char[benchmarkModule.fieldSize];
-        this.homePartition = benchmarkModule.partitions.get(benchmarkModule.region);
+        this.homePartition = partitions.get(benchmarkModule.region);
         this.otherPartitions = new ArrayList<>();
-        for (Partition p : benchmarkModule.partitions) {
+        for (Partition p : partitions) {
             if (p != this.homePartition) {
                 this.otherPartitions.add(p);
             }
