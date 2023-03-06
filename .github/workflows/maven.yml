@@ -378,6 +378,7 @@ jobs:
     env:
       DOCKER_BUILDKIT: 1
       BENCHBASE_PROFILES: 'cockroachdb postgres'
+      CONTAINER_REGISTRY_NAME: ghcr.io/${{ github.repository_owner }}
     services:
       postgres: # https://hub.docker.com/_/postgres
         image: postgres:latest
@@ -447,8 +448,8 @@ jobs:
       - name: Push Docker image
         if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
         run: |
-          docker push -a ghcr.io/${{ github.repository_owner }}/benchbase-dev
-          docker push -a ghcr.io/${{ github.repository_owner }}/benchbase
+          docker push -a ${{ env.CONTAINER_REGISTRY_NAME }}/benchbase-dev
+          docker push -a ${{ env.CONTAINER_REGISTRY_NAME }}/benchbase
           for profile in $BENCHBASE_PROFILES; do
-            docker push -a ghcr.io/${{ github.repository_owner }}/benchbase-$profile
+            docker push -a ${{ env.CONTAINER_REGISTRY_NAME }}/benchbase-$profile
           done
