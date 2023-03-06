@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        profile: [ 'cockroachdb', 'mariadb', 'mysql', 'postgres', 'spanner', 'phoenix', 'sqlserver', 'sqlite' ]
+        profile: [ 'cockroachdb', 'postgres' ]
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -82,167 +82,167 @@ jobs:
   ## ----------------------------------------------------------------------------------
   ## SQLITE
   ## ----------------------------------------------------------------------------------
-  sqlite:
-    needs: package-and-upload
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # BROKEN: tpch
-        benchmark: [ 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: benchbase-sqlite
+  # sqlite:
+  #   needs: package-and-upload
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       # BROKEN: tpch
+  #       benchmark: [ 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+  #   steps:
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: benchbase-sqlite
 
-      - name: Extract artifact
-        run: |
-          tar xvzf benchbase-sqlite.tgz --strip-components=1
+  #     - name: Extract artifact
+  #       run: |
+  #         tar xvzf benchbase-sqlite.tgz --strip-components=1
 
-      - name: Delete artifact
-        run: |
-          rm -rf benchbase-sqlite.tgz
+  #     - name: Delete artifact
+  #       run: |
+  #         rm -rf benchbase-sqlite.tgz
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{env.JAVA_VERSION}}
-          distribution: 'temurin'
+  #     - name: Set up JDK
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: ${{env.JAVA_VERSION}}
+  #         distribution: 'temurin'
 
-      - name: Run benchmark
-        run: |
-          java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/sqlite/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
-          # FIXME: Reduce the error rate so we don't need these overrides.
-          if [ ${{matrix.benchmark}} == auctionmark ]; then
-              ERRORS_THRESHOLD=0.02
-          elif [ ${{matrix.benchmark}} == resourcestresser ]; then
-              ERRORS_THRESHOLD=0.05
-          elif [ ${{matrix.benchmark}} == smallbank ]; then
-              ERRORS_THRESHOLD=0.03
-          elif [ ${{matrix.benchmark}} == tatp ]; then
-              ERRORS_THRESHOLD=0.05
-          fi
-          ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
+  #     - name: Run benchmark
+  #       run: |
+  #         java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/sqlite/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
+  #         # FIXME: Reduce the error rate so we don't need these overrides.
+  #         if [ ${{matrix.benchmark}} == auctionmark ]; then
+  #             ERRORS_THRESHOLD=0.02
+  #         elif [ ${{matrix.benchmark}} == resourcestresser ]; then
+  #             ERRORS_THRESHOLD=0.05
+  #         elif [ ${{matrix.benchmark}} == smallbank ]; then
+  #             ERRORS_THRESHOLD=0.03
+  #         elif [ ${{matrix.benchmark}} == tatp ]; then
+  #             ERRORS_THRESHOLD=0.05
+  #         fi
+  #         ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
 
   ## ----------------------------------------------------------------------------------
   ## MARIADB
   ## ----------------------------------------------------------------------------------
-  mariadb:
-    needs: package-and-upload
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-    services:
-      mariadb: # https://hub.docker.com/_/mariadb
-        image: mariadb:latest
-        env:
-          MARIADB_ROOT_PASSWORD: rootyMcRooty
-          MARIADB_DATABASE: benchbase
-          MARIADB_USER: admin
-          MARIADB_PASSWORD: password
-        # Use status instead of ping due to exit code issues: https://jira.mariadb.org/browse/MDEV-31550
-        options: >-
-          --health-cmd "mariadb-admin status -uroot -prootyMcRooty"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 3306:3306
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: benchbase-mariadb
+  # mariadb:
+  #   needs: package-and-upload
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+  #   services:
+  #     mariadb: # https://hub.docker.com/_/mariadb
+  #       image: mariadb:latest
+  #       env:
+  #         MARIADB_ROOT_PASSWORD: rootyMcRooty
+  #         MARIADB_DATABASE: benchbase
+  #         MARIADB_USER: admin
+  #         MARIADB_PASSWORD: password
+  #       # Use status instead of ping due to exit code issues: https://jira.mariadb.org/browse/MDEV-31550
+  #       options: >-
+  #         --health-cmd "mariadb-admin status -uroot -prootyMcRooty"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #       ports:
+  #         - 3306:3306
+  #   steps:
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: benchbase-mariadb
 
-      - name: Extract artifact
-        run: |
-          tar xvzf benchbase-mariadb.tgz --strip-components=1
+  #     - name: Extract artifact
+  #       run: |
+  #         tar xvzf benchbase-mariadb.tgz --strip-components=1
 
-      - name: Delete artifact
-        run: |
-          rm -rf benchbase-mariadb.tgz
+  #     - name: Delete artifact
+  #       run: |
+  #         rm -rf benchbase-mariadb.tgz
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{env.JAVA_VERSION}}
-          distribution: 'temurin'
+  #     - name: Set up JDK
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: ${{env.JAVA_VERSION}}
+  #         distribution: 'temurin'
 
-      - name: Run benchmark
-        env:
-          MARIADB_PORT: ${{ job.services.mariadb.ports[3306] }}
-        run: |
-          mysql -h127.0.0.1 -P$MARIADB_PORT -uadmin -ppassword -e "DROP DATABASE IF EXISTS benchbase; CREATE DATABASE benchbase"
-          java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/mariadb/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
-          # FIXME: Reduce the error rate so we don't need these overrides.
-          if [ ${{matrix.benchmark}} == auctionmark ]; then
-              ERRORS_THRESHOLD=0.02
-          elif [ ${{matrix.benchmark}} == tatp ]; then
-              ERRORS_THRESHOLD=0.05
-          fi
-          ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
+  #     - name: Run benchmark
+  #       env:
+  #         MARIADB_PORT: ${{ job.services.mariadb.ports[3306] }}
+  #       run: |
+  #         mysql -h127.0.0.1 -P$MARIADB_PORT -uadmin -ppassword -e "DROP DATABASE IF EXISTS benchbase; CREATE DATABASE benchbase"
+  #         java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/mariadb/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
+  #         # FIXME: Reduce the error rate so we don't need these overrides.
+  #         if [ ${{matrix.benchmark}} == auctionmark ]; then
+  #             ERRORS_THRESHOLD=0.02
+  #         elif [ ${{matrix.benchmark}} == tatp ]; then
+  #             ERRORS_THRESHOLD=0.05
+  #         fi
+  #         ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
 
   ## ----------------------------------------------------------------------------------
   ## MYSQL
   ## ----------------------------------------------------------------------------------
-  mysql:
-    needs: package-and-upload
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-    services:
-      mysql: # https://hub.docker.com/_/mysql
-        image: mysql:latest
-        env:
-          MYSQL_ROOT_PASSWORD: rootyMcRooty
-          MYSQL_DATABASE: benchbase
-          MYSQL_USER: admin
-          MYSQL_PASSWORD: password
-        options: >-
-          --health-cmd "mysqladmin ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 3306:3306
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: benchbase-mysql
+  # mysql:
+  #   needs: package-and-upload
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+  #   services:
+  #     mysql: # https://hub.docker.com/_/mysql
+  #       image: mysql:latest
+  #       env:
+  #         MYSQL_ROOT_PASSWORD: rootyMcRooty
+  #         MYSQL_DATABASE: benchbase
+  #         MYSQL_USER: admin
+  #         MYSQL_PASSWORD: password
+  #       options: >-
+  #         --health-cmd "mysqladmin ping"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #       ports:
+  #         - 3306:3306
+  #   steps:
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: benchbase-mysql
 
-      - name: Extract artifact
-        run: |
-          tar xvzf benchbase-mysql.tgz --strip-components=1
+  #     - name: Extract artifact
+  #       run: |
+  #         tar xvzf benchbase-mysql.tgz --strip-components=1
 
-      - name: Delete artifact
-        run: |
-          rm -rf benchbase-mysql.tgz
+  #     - name: Delete artifact
+  #       run: |
+  #         rm -rf benchbase-mysql.tgz
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{env.JAVA_VERSION}}
-          distribution: 'temurin'
+  #     - name: Set up JDK
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: ${{env.JAVA_VERSION}}
+  #         distribution: 'temurin'
 
-      - name: Run benchmark
-        env:
-          MYSQL_PORT: ${{ job.services.mysql.ports[3306] }}
-        run: |
-          mysql -h127.0.0.1 -P$MYSQL_PORT -uadmin -ppassword -e "DROP DATABASE IF EXISTS benchbase; CREATE DATABASE benchbase"
-          java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/mysql/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
-          # FIXME: Reduce the error rate so we don't need these overrides.
-          if [ ${{matrix.benchmark}} == auctionmark ]; then
-              ERRORS_THRESHOLD=0.02
-          elif [ ${{matrix.benchmark}} == tatp ]; then
-              ERRORS_THRESHOLD=0.05
-          fi
-          ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
+  #     - name: Run benchmark
+  #       env:
+  #         MYSQL_PORT: ${{ job.services.mysql.ports[3306] }}
+  #       run: |
+  #         mysql -h127.0.0.1 -P$MYSQL_PORT -uadmin -ppassword -e "DROP DATABASE IF EXISTS benchbase; CREATE DATABASE benchbase"
+  #         java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/mysql/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
+  #         # FIXME: Reduce the error rate so we don't need these overrides.
+  #         if [ ${{matrix.benchmark}} == auctionmark ]; then
+  #             ERRORS_THRESHOLD=0.02
+  #         elif [ ${{matrix.benchmark}} == tatp ]; then
+  #             ERRORS_THRESHOLD=0.05
+  #         fi
+  #         ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
 
   ## ----------------------------------------------------------------------------------
   ## POSTGRESQL
@@ -354,81 +354,81 @@ jobs:
   ## ----------------------------------------------------------------------------------
   ## MSSQL
   ## ----------------------------------------------------------------------------------
-  sqlserver:
-    needs: package-and-upload
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # TODO: add more benchmarks
-        #benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-        benchmark: [ 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-    services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:latest
-        env:
-          ACCEPT_EULA: Y
-          SA_PASSWORD: SApassword1
-        options: >-
-          --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P SApassword1 -b -Q 'SELECT 1;'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 1433:1433
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: benchbase-sqlserver
+  # sqlserver:
+  #   needs: package-and-upload
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       # TODO: add more benchmarks
+  #       #benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+  #       benchmark: [ 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+  #   services:
+  #     sqlserver:
+  #       image: mcr.microsoft.com/mssql/server:latest
+  #       env:
+  #         ACCEPT_EULA: Y
+  #         SA_PASSWORD: SApassword1
+  #       options: >-
+  #         --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P SApassword1 -b -Q 'SELECT 1;'"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #       ports:
+  #         - 1433:1433
+  #   steps:
+  #     - name: Download artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: benchbase-sqlserver
 
-      - name: Extract artifact
-        run: |
-          tar xvzf benchbase-sqlserver.tgz --strip-components=1
+  #     - name: Extract artifact
+  #       run: |
+  #         tar xvzf benchbase-sqlserver.tgz --strip-components=1
 
-      - name: Delete artifact
-        run: |
-          rm -rf benchbase-sqlserver.tgz
+  #     - name: Delete artifact
+  #       run: |
+  #         rm -rf benchbase-sqlserver.tgz
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{env.JAVA_VERSION}}
-          distribution: 'temurin'
+  #     - name: Set up JDK
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: ${{env.JAVA_VERSION}}
+  #         distribution: 'temurin'
 
-      - name: Cleanup database
-        uses: docker://mcr.microsoft.com/mssql-tools:latest
-        with:
-          entrypoint: /opt/mssql-tools/bin/sqlcmd
-          args: -U sa -P SApassword1 -S sqlserver -b -Q "DROP DATABASE IF EXISTS benchbase;"
+  #     - name: Cleanup database
+  #       uses: docker://mcr.microsoft.com/mssql-tools:latest
+  #       with:
+  #         entrypoint: /opt/mssql-tools/bin/sqlcmd
+  #         args: -U sa -P SApassword1 -S sqlserver -b -Q "DROP DATABASE IF EXISTS benchbase;"
 
-      - name: Setup database
-        uses: docker://mcr.microsoft.com/mssql-tools:latest
-        with:
-          entrypoint: /opt/mssql-tools/bin/sqlcmd
-          args: -U sa -P SApassword1 -S sqlserver -b -Q "CREATE DATABASE benchbase;"
+  #     - name: Setup database
+  #       uses: docker://mcr.microsoft.com/mssql-tools:latest
+  #       with:
+  #         entrypoint: /opt/mssql-tools/bin/sqlcmd
+  #         args: -U sa -P SApassword1 -S sqlserver -b -Q "CREATE DATABASE benchbase;"
 
-      - name: Setup login
-        uses: docker://mcr.microsoft.com/mssql-tools:latest
-        with:
-          entrypoint: /opt/mssql-tools/bin/sqlcmd
-          args: -U sa -P SApassword1 -S sqlserver -Q "CREATE LOGIN benchuser01 WITH PASSWORD='P@ssw0rd';"
+  #     - name: Setup login
+  #       uses: docker://mcr.microsoft.com/mssql-tools:latest
+  #       with:
+  #         entrypoint: /opt/mssql-tools/bin/sqlcmd
+  #         args: -U sa -P SApassword1 -S sqlserver -Q "CREATE LOGIN benchuser01 WITH PASSWORD='P@ssw0rd';"
 
-      - name: Setup access
-        uses: docker://mcr.microsoft.com/mssql-tools:latest
-        with:
-          entrypoint: /opt/mssql-tools/bin/sqlcmd
-          args: -U sa -P SApassword1 -S sqlserver -b -Q "USE benchbase; CREATE USER benchuser01 FROM LOGIN benchuser01; EXEC sp_addrolemember 'db_owner', 'benchuser01';"
+  #     - name: Setup access
+  #       uses: docker://mcr.microsoft.com/mssql-tools:latest
+  #       with:
+  #         entrypoint: /opt/mssql-tools/bin/sqlcmd
+  #         args: -U sa -P SApassword1 -S sqlserver -b -Q "USE benchbase; CREATE USER benchuser01 FROM LOGIN benchuser01; EXEC sp_addrolemember 'db_owner', 'benchuser01';"
 
-      - name: Run benchmark
-        # Note: user/pass should match those used in sample configs.
-        run: |
-          java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/sqlserver/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
-          # FIXME: Reduce the error rate so we don't need these overrides.
-          if [ ${{matrix.benchmark}} == tatp ]; then
-              ERRORS_THRESHOLD=0.05
-          fi
-          ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
+  #     - name: Run benchmark
+  #       # Note: user/pass should match those used in sample configs.
+  #       run: |
+  #         java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/sqlserver/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
+  #         # FIXME: Reduce the error rate so we don't need these overrides.
+  #         if [ ${{matrix.benchmark}} == tatp ]; then
+  #             ERRORS_THRESHOLD=0.05
+  #         fi
+  #         ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
 
   ## ----------------------------------------------------------------------------------
   ## Docker Build Test Publish
@@ -437,8 +437,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
-      BENCHBASE_PROFILES: 'cockroachdb mariadb mysql postgres spanner phoenix sqlserver sqlite'
-      CONTAINER_REGISTRY_NAME: ${{ secrets.ACR_LOGINURL }}
+      BENCHBASE_PROFILES: 'cockroachdb postgres'
     services:
       postgres: # https://hub.docker.com/_/postgres
         image: postgres:latest
@@ -507,20 +506,18 @@ jobs:
           done
       # Publish the docker image if the build/test was successful.
       # Only do this with approved PRs and if the login secrets are available.
-      # Typically we expect to publish to benchbase.azurecr.io,
-      # but setting ACR_LOGINURL to something else allows us to do testing on forks.
       - name: Log in to Docker Hub
-        if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && env.CONTAINER_REGISTRY_NAME != '' }}
+        if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
         uses: docker/login-action@v2
         with:
-          registry: ${{ secrets.ACR_LOGINURL }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push Docker image
-        if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && env.CONTAINER_REGISTRY_NAME != '' }}
+        if: ${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
         run: |
-          docker push -a ${{ secrets.ACR_LOGINURL}}/benchbase-dev
-          docker push -a ${{ secrets.ACR_LOGINURL}}/benchbase
+          docker push -a ghcr.io/${{ github.repository_owner }}/benchbase-dev
+          docker push -a ghcr.io/${{ github.repository_owner }}/benchbase
           for profile in $BENCHBASE_PROFILES; do
-            docker push -a ${{ secrets.ACR_LOGINURL }}/benchbase-$profile
+            docker push -a ghcr.io/${{ github.repository_owner }}/benchbase-$profile
           done
