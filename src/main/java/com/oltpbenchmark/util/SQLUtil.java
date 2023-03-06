@@ -475,24 +475,6 @@ WHERE t.name='%s' AND c.name='%s'
                 col, tableName);
     }
 
-    public static String getPartitionRanges(DatabaseType dbType, Table catalog_tbl) {
-        String tableName = (dbType.shouldEscapeNames() ? catalog_tbl.getEscapedName() : catalog_tbl.getName());
-        return String.format("""
-            with partitions as (select i.inhrelid as partoid
-                                from pg_inherits i
-                                join pg_class cl on i.inhparent = cl.oid
-                                where cl.relname = '%s'),
-                 expressions as (select c.relregion                              as region
-                                      , pg_get_expr(c.relpartbound, c.oid, true) as expression
-                                 from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-            select region
-                 , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
-                 , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
-            from expressions
-            order by region;
-        """, tableName);
-    }
-
     /**
      * Extract the catalog from the database.
      */
