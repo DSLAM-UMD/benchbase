@@ -1,0 +1,36 @@
+version: '3.8'
+
+configs:
+  substitute:
+    file: ./substitute.sh
+  benchmark_config:
+    file: ./postgres/${BENCHMARK:-hot}-config.xml
+  benchmark_ddl:
+    file: ./postgres/${BENCHMARK:-hot}-ddl.sql
+
+services:
+  benchbase:
+    image: ghcr.io/umd-dslam/benchbase-postgres:latest
+    configs:
+      - source: substitute
+        target: /substitute.sh
+      - source: benchmark_config
+        target: /${BENCHMARK:-hot}-config-template.xml
+      - source: benchmark_ddl
+        target: /${BENCHMARK:-hot}-ddl.sql
+    user: root
+    network_mode: host
+    environment:
+      - BENCHMARK=${BENCHMARK:-hot}
+      - HOST=${HOST:-host.docker.internal}
+      - PORT=${PORT:-55432}
+      - DATABASE=${DATABASE:-postgres}
+      - USERNAME=${USERNAME:-cloud_admin}
+      - PASSWORD=${PASSWORD}
+      - REGION=${REGION:-0}
+    entrypoint: 
+      - /bin/bash
+      - -c
+    command:
+      - /substitute.sh && 
+        /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --${OP:-create}=true
