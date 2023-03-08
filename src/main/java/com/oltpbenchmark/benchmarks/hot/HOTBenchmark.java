@@ -64,7 +64,8 @@ public class HOTBenchmark extends BenchmarkModule {
             }
 
             if (xmlConfig.containsKey("region")) {
-                region = xmlConfig.getInt("region");
+                /* region is 1-based in the config but 0-based here */
+                region = xmlConfig.getInt("region") - 1;
             }
 
             if (xmlConfig.containsKey("hot")) {
