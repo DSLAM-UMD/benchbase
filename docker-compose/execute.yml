@@ -23,7 +23,7 @@ services:
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
       - HOST=host.docker.internal
-      - PORT=55433
+      - PORT={PORT:-55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
@@ -44,7 +44,7 @@ services:
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
       - HOST=host.docker.internal
-      - PORT=55434
+      - PORT={PORT:-55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
@@ -65,7 +65,7 @@ services:
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
       - HOST=host.docker.internal
-      - PORT={PORT:-55433}
+      - PORT={PORT:-55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
