@@ -9,6 +9,12 @@ LABEL org.opencontainers.image.source = "https://github.com/cmu-db/benchbase/"
 # Make sure the image is patched and up to date.
 RUN apt update && apt -y upgrade && apt clean && rm -rf /var/lib/apt/lists/*
 
+# Install minio client
+RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+         --create-dirs \
+         -o /usr/bin/mc \
+    && chmod +x /usr/bin/mc
+
 # Add a containeruser that allows vscode/codespaces to map the local host user
 # (often uid 1000) to some non-root user inside the container.
 ARG CONTAINERUSER_UID=1000
