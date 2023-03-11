@@ -22,8 +22,7 @@ services:
     network_mode: host
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - HOST=${HOST:-host.docker.internal}
-      - PORT=${PORT:-55432}
+      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
