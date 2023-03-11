@@ -7,6 +7,8 @@ configs:
     file: ./postgres/${BENCHMARK:-hot}-config.xml
   benchmark_ddl:
     file: ./postgres/${BENCHMARK:-hot}-ddl.sql
+  upload:
+    file: ./upload.sh
 
 services:
   benchbase_1: &benchbase
@@ -18,12 +20,13 @@ services:
         target: /${BENCHMARK:-hot}-config-template.xml
       - source: benchmark_ddl
         target: /${BENCHMARK:-hot}-ddl.sql
+      - source: upload
+        target: /upload.sh
     user: root
     network_mode: host
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - HOST=host.docker.internal
-      - PORT={PORT:-55432}
+      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
@@ -33,18 +36,22 @@ services:
       - -c
     command:
       - /substitute.sh && 
-        /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --execute=true -im 1000
+        /entrypoint.sh
+          --bench $$BENCHMARK
+          --config /$$BENCHMARK-config.xml
+          --execute=true
+          --interval-monitor 1000 &&
+        /upload.sh ${TAG:-default}/region1
     volumes:
       - type: bind
-        source: ./results/region1
+        source: ./results/${TAG:-default}/region1
         target: /benchbase/results
 
   benchbase_2:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - HOST=host.docker.internal
-      - PORT={PORT:-55432}
+      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
@@ -54,18 +61,22 @@ services:
       - -c
     command:
       - /substitute.sh && 
-        /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --execute=true -im 1000
+        /entrypoint.sh
+          --bench $$BENCHMARK
+          --config /$$BENCHMARK-config.xml
+          --execute=true
+          --interval-monitor 1000 &&
+        /upload.sh ${TAG:-default}/region2
     volumes:
       - type: bind
-        source: ./results/region2
+        source: ./results/${TAG:-default}/region2
         target: /benchbase/results
 
   benchbase_3:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - HOST=host.docker.internal
-      - PORT={PORT:-55432}
+      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD}
@@ -75,8 +86,13 @@ services:
       - -c
     command:
       - /substitute.sh && 
-        /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --execute=true
+        /entrypoint.sh
+          --bench $$BENCHMARK
+          --config /$$BENCHMARK-config.xml
+          --execute=true
+          --interval-monitor 1000 &&
+        /upload.sh ${TAG:-default}/region3
     volumes:
       - type: bind
-        source: ./results/region3
+        source: ./results/${TAG:-default}/region3
         target: /benchbase/results
