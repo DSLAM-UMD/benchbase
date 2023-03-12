@@ -1,3 +1,15 @@
+# Local
+#   export R1="host.docker.internal:55433"
+#   export R2="host.docker.internal:55434"
+#   export R3="host.docker.internal:55435"
+#   NETWORK_MODE=host compose -f execute.yml up
+# 
+# Swarm
+#   export R1="compute-r1:55432"
+#   export R2="compute-r2:55432"
+#   export R3="compute-r3:55432"
+#   MINIO=minio:9000 docker stack deploy --compose-file execute.yaml benchbase
+#
 version: '3.8'
 
 configs:
@@ -10,8 +22,13 @@ configs:
   upload:
     file: ./upload.sh
 
+networks:
+  default:
+    name: neon
+    external: true
+
 services:
-  benchbase_1: &benchbase
+  benchbase-r1: &benchbase
     image: ghcr.io/umd-dslam/benchbase-postgres:latest
     configs:
       - source: substitute
@@ -23,14 +40,15 @@ services:
       - source: upload
         target: /upload.sh
     user: root
-    network_mode: host
+    network_mode: ${NETWORK_MODE:-}
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
+      - ADDRESS=${R1:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
-      - PASSWORD=${PASSWORD}
+      - PASSWORD=${PASSWORD:-}
       - REGION=1
+      - MINIO=${MINIO:-localhost:9000}
     entrypoint: 
       - /bin/bash
       - -c
@@ -47,15 +65,16 @@ services:
         source: ./results/${TAG:-default}/region1
         target: /benchbase/results
 
-  benchbase_2:
+  benchbase-r2:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
+      - ADDRESS=${R2:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
-      - PASSWORD=${PASSWORD}
+      - PASSWORD=${PASSWORD:-}
       - REGION=2
+      - MINIO=${MINIO:-localhost:9000}
     entrypoint: 
       - /bin/bash
       - -c
@@ -72,15 +91,16 @@ services:
         source: ./results/${TAG:-default}/region2
         target: /benchbase/results
 
-  benchbase_3:
+  benchbase-r3:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
-      - ADDRESS=${ADDRESS:-host.docker.internal:55432}
+      - ADDRESS=${R3:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
-      - PASSWORD=${PASSWORD}
+      - PASSWORD=${PASSWORD:-}
       - REGION=3
+      - MINIO=${MINIO:-localhost:9000}
     entrypoint: 
       - /bin/bash
       - -c
