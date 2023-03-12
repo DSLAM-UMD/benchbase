@@ -1,3 +1,15 @@
+# Local - run DDL
+#   OP=create NETWORK_MODE=host docker compose -f create_load.yml up
+#
+# Local - load data
+#   OP=load NETWORK_MODE=host docker compose -f create_load.yml up
+# 
+# Swarm - run DDL:
+#   OP=create ADDRESS=compute-r0:55432 docker stack deploy --compose-file create_load.yaml benchbase_init
+#
+# Swarm - load data:
+#   OP=load ADDRESS=compute-r0:55432 docker stack deploy --compose-file create_load.yaml benchbase_init
+#
 version: '3.8'
 
 configs:
@@ -7,6 +19,11 @@ configs:
     file: ./postgres/${BENCHMARK:-hot}-config.xml
   benchmark_ddl:
     file: ./postgres/${BENCHMARK:-hot}-ddl.sql
+
+networks:
+  default:
+    name: neon
+    external: true
 
 services:
   benchbase:
@@ -19,14 +36,14 @@ services:
       - source: benchmark_ddl
         target: /${BENCHMARK:-hot}-ddl.sql
     user: root
-    network_mode: host
+    network_mode: ${NETWORK_MODE:-}
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
       - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
       - USERNAME=${USERNAME:-cloud_admin}
-      - PASSWORD=${PASSWORD}
-      - REGION=${REGION:-0}
+      - PASSWORD=${PASSWORD:-}
+      - REGION=0
     entrypoint: 
       - /bin/bash
       - -c

@@ -1,5 +1,5 @@
 #!/bin/bash
 set -eux
 
-/usr/bin/mc alias set local http://localhost:9000 minioadmin minioadmin
-/usr/bin/mc cp /benchbase/results/* local/neon/$1/
+/usr/bin/mc alias set minio http://${MINIO} minioadmin minioadmin
+/usr/bin/mc cp /benchbase/results/* minio/neon/$1/
