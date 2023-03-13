@@ -14,7 +14,7 @@
     <ddlpath>/hot-ddl.sql</ddlpath>
 
     <!-- Scalefactor in YCSB is *1000 the number of rows in the USERTABLE-->
-    <scalefactor>20</scalefactor>
+    <scalefactor>30</scalefactor>
     
     <!-- Optional: Override the field size for each column in USERTABLE -->
     <fieldSize>8</fieldSize>
