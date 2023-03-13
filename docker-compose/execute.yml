@@ -64,6 +64,11 @@ services:
       - type: bind
         source: ./results/${TAG:-default}/region1
         target: /benchbase/results
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region==1
+          - node.labels.has_benchbase==true
 
   benchbase-r2:
     <<: *benchbase
@@ -90,6 +95,11 @@ services:
       - type: bind
         source: ./results/${TAG:-default}/region2
         target: /benchbase/results
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region==2
+          - node.labels.has_benchbase==true
 
   benchbase-r3:
     <<: *benchbase
@@ -116,3 +126,13 @@ services:
       - type: bind
         source: ./results/${TAG:-default}/region3
         target: /benchbase/results
+    deploy:
+      placement:
+        constraints:
+          - node.labels.has_xactserver==true
+          - node.labels.region==0
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region==3
+          - node.labels.has_benchbase==true
