@@ -8,7 +8,7 @@
 #   export R1="compute-r1:55432"
 #   export R2="compute-r2:55432"
 #   export R3="compute-r3:55432"
-#   MINIO=minio:9000 docker stack deploy --compose-file execute.yaml benchbase
+#   MINIO=minio:9000 docker stack deploy --compose-file execute.yml bb
 #
 version: '3.8'
 
@@ -28,7 +28,7 @@ networks:
     external: true
 
 services:
-  benchbase-r1: &benchbase
+  bb-r1: &benchbase
     image: ghcr.io/umd-dslam/benchbase-postgres:latest
     configs:
       - source: substitute
@@ -62,10 +62,6 @@ services:
           --execute=true
           --interval-monitor 1000 &&
         /upload.sh ${TAG:-default}/region1
-    volumes:
-      - type: bind
-        source: ./results/${TAG:-default}/region1
-        target: /benchbase/results
     deploy:
       restart_policy:
         condition: none
@@ -74,7 +70,7 @@ services:
           - node.labels.region==1
           - node.labels.has_benchbase==true
 
-  benchbase-r2:
+  bb-r2:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
@@ -95,10 +91,6 @@ services:
           --execute=true
           --interval-monitor 1000 &&
         /upload.sh ${TAG:-default}/region2
-    volumes:
-      - type: bind
-        source: ./results/${TAG:-default}/region2
-        target: /benchbase/results
     deploy:
       restart_policy:
         condition: none
@@ -107,7 +99,7 @@ services:
           - node.labels.region==2
           - node.labels.has_benchbase==true
 
-  benchbase-r3:
+  bb-r3:
     <<: *benchbase
     environment:
       - BENCHMARK=${BENCHMARK:-hot}
@@ -128,10 +120,6 @@ services:
           --execute=true
           --interval-monitor 1000 &&
         /upload.sh ${TAG:-default}/region3
-    volumes:
-      - type: bind
-        source: ./results/${TAG:-default}/region3
-        target: /benchbase/results
     deploy:
       placement:
         constraints:
