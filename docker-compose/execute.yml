@@ -33,12 +33,14 @@ services:
     configs:
       - source: substitute
         target: /substitute.sh
+        mode: 0555 # readable and executable
       - source: benchmark_config
         target: /${BENCHMARK:-hot}-config-template.xml
       - source: benchmark_ddl
         target: /${BENCHMARK:-hot}-ddl.sql
       - source: upload
         target: /upload.sh
+        mode: 0555 # readable and executable
     user: root
     network_mode: ${NETWORK_MODE:-}
     environment:

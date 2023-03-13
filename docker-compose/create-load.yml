@@ -31,6 +31,7 @@ services:
     configs:
       - source: substitute
         target: /substitute.sh
+        mode: 0555 # readable and executable
       - source: benchmark_config
         target: /${BENCHMARK:-hot}-config-template.xml
       - source: benchmark_ddl
@@ -51,6 +52,8 @@ services:
       - /substitute.sh && 
         /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --${OP:-create}=true
     deploy:
+      restart_policy:
+        condition: none
       placement:
         constraints:
           - node.labels.region==0
