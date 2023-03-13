@@ -64,7 +64,8 @@ services:
         /upload.sh ${TAG:-default}/region1
     deploy:
       restart_policy:
-        condition: none
+        condition: on-failure
+        max_attempts: 3
       placement:
         constraints:
           - node.labels.region==1
@@ -93,7 +94,8 @@ services:
         /upload.sh ${TAG:-default}/region2
     deploy:
       restart_policy:
-        condition: none
+        condition: on-failure
+        max_attempts: 3
       placement:
         constraints:
           - node.labels.region==2
@@ -121,13 +123,9 @@ services:
           --interval-monitor 1000 &&
         /upload.sh ${TAG:-default}/region3
     deploy:
-      placement:
-        constraints:
-          - node.labels.has_xactserver==true
-          - node.labels.region==0
-    deploy:
       restart_policy:
-        condition: none
+        condition: on-failure
+        max_attempts: 3
       placement:
         constraints:
           - node.labels.region==3
