@@ -5,10 +5,10 @@
 #   OP=load NETWORK_MODE=host docker compose -f create-load.yml up
 # 
 # Swarm - run DDL:
-#   OP=create ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml benchbase_init
+#   OP=create ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml create
 #
 # Swarm - load data:
-#   OP=load ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml benchbase_init
+#   OP=load ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml load
 #
 version: '3.8'
 
@@ -26,7 +26,7 @@ networks:
     external: true
 
 services:
-  benchbase:
+  bb:
     image: ghcr.io/umd-dslam/benchbase-postgres:latest
     configs:
       - source: substitute
