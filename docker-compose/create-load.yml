@@ -1,14 +1,14 @@
 # Local - run DDL
-#   OP=create NETWORK_MODE=host docker compose -f create_load.yml up
+#   OP=create NETWORK_MODE=host docker compose -f create-load.yml up
 #
 # Local - load data
-#   OP=load NETWORK_MODE=host docker compose -f create_load.yml up
+#   OP=load NETWORK_MODE=host docker compose -f create-load.yml up
 # 
 # Swarm - run DDL:
-#   OP=create ADDRESS=compute-r0:55432 docker stack deploy --compose-file create_load.yaml benchbase_init
+#   OP=create ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml benchbase_init
 #
 # Swarm - load data:
-#   OP=load ADDRESS=compute-r0:55432 docker stack deploy --compose-file create_load.yaml benchbase_init
+#   OP=load ADDRESS=compute-r0:55432 docker stack deploy --compose-file create-load.yml benchbase_init
 #
 version: '3.8'
 
@@ -50,3 +50,9 @@ services:
     command:
       - /substitute.sh && 
         /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --${OP:-create}=true
+    deploy:
+      placement:
+        constraints:
+          - node.labels.region==0
+          - node.labels.has_benchbase==true
+
