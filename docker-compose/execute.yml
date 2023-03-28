@@ -2,7 +2,7 @@
 #   export R1="host.docker.internal:55433"
 #   export R2="host.docker.internal:55434"
 #   export R3="host.docker.internal:55435"
-#   NETWORK_MODE=host compose -f execute.yml up
+#   NETWORK_MODE=host docker compose -f execute.yml up
 # 
 # Swarm
 #   export R1="compute-r1:55432"
@@ -19,8 +19,8 @@ configs:
     file: ./postgres/${BENCHMARK:-hot}-config.xml
   benchmark_ddl:
     file: ./postgres/${BENCHMARK:-hot}-ddl.sql
-  upload:
-    file: ./upload.sh
+  upload-and-clean:
+    file: ./upload-and-clean.sh
 
 networks:
   default:
@@ -38,8 +38,8 @@ services:
         target: /${BENCHMARK:-hot}-config-template.xml
       - source: benchmark_ddl
         target: /${BENCHMARK:-hot}-ddl.sql
-      - source: upload
-        target: /upload.sh
+      - source: upload-and-clean
+        target: /upload-and-clean.sh
         mode: 0555 # readable and executable
     user: root
     network_mode: ${NETWORK_MODE:-}
@@ -50,18 +50,21 @@ services:
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=1
-      - MINIO=${MINIO:-localhost:9000}
+      - MINIO=${MINIO:-host.docker.internal:9000}
     entrypoint: 
       - /bin/bash
       - -c
     command:
-      - /substitute.sh && 
+      - timestamp=$(date +%Y-%m_%d-%H-%M-%S) &&
+        /substitute.sh &&
         /entrypoint.sh
           --bench $$BENCHMARK
           --config /$$BENCHMARK-config.xml
           --execute=true
-          --interval-monitor 1000 &&
-        /upload.sh ${TAG:-default}/region1
+          --interval-monitor 1000
+          --json-histograms results/histograms.json |
+          tee results/log.txt &&
+        /upload-and-clean.sh ${TAG:-$$timestamp}/region$$REGION
     deploy:
       restart_policy:
         condition: on-failure
@@ -80,18 +83,7 @@ services:
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=2
-      - MINIO=${MINIO:-localhost:9000}
-    entrypoint: 
-      - /bin/bash
-      - -c
-    command:
-      - /substitute.sh && 
-        /entrypoint.sh
-          --bench $$BENCHMARK
-          --config /$$BENCHMARK-config.xml
-          --execute=true
-          --interval-monitor 1000 &&
-        /upload.sh ${TAG:-default}/region2
+      - MINIO=${MINIO:-host.docker.internal:9000}
     deploy:
       restart_policy:
         condition: on-failure
@@ -110,18 +102,7 @@ services:
       - USERNAME=${USERNAME:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=3
-      - MINIO=${MINIO:-localhost:9000}
-    entrypoint: 
-      - /bin/bash
-      - -c
-    command:
-      - /substitute.sh && 
-        /entrypoint.sh
-          --bench $$BENCHMARK
-          --config /$$BENCHMARK-config.xml
-          --execute=true
-          --interval-monitor 1000 &&
-        /upload.sh ${TAG:-default}/region3
+      - MINIO=${MINIO:-host.docker.internal:9000}
     deploy:
       restart_policy:
         condition: on-failure
