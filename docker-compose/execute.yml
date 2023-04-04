@@ -1,10 +1,16 @@
-# Local
+# Neon is run locally
 #   export R1="host.docker.internal:55433"
 #   export R2="host.docker.internal:55434"
 #   export R3="host.docker.internal:55435"
 #   NETWORK_MODE=host docker compose -f execute.yml up
 # 
-# Swarm
+# Neon is run with docker compose
+#   export R1="compute-r1:55432"
+#   export R2="compute-r2:55432"
+#   export R3="compute-r3:55432"
+#   MINIO=minio:9000 docker compose -f execute.yml up
+#
+# Neon is run in a swarm
 #   export R1="compute-r1:55432"
 #   export R2="compute-r2:55432"
 #   export R3="compute-r3:55432"
@@ -53,9 +59,11 @@ services:
       - MINIO=${MINIO:-host.docker.internal:9000}
     entrypoint: 
       - /bin/bash
+      - -o
+      - pipefail
       - -c
     command:
-      - timestamp=$(date +%Y-%m_%d-%H-%M-%S) &&
+      - timestamp=$(date +%Y-%m-%d_%H-%M-%S) &&
         /substitute.sh &&
         /entrypoint.sh
           --bench $$BENCHMARK
