@@ -65,7 +65,7 @@ services:
     command:
       - timestamp=$(date +%Y-%m-%d_%H-%M-%S) &&
         /substitute.sh &&
-        /entrypoint.sh
+        /benchbase/entrypoint.sh
           --bench $$BENCHMARK
           --config /$$BENCHMARK-config.xml
           --execute=true

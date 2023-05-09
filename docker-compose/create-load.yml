@@ -50,7 +50,7 @@ services:
       - -c
     command:
       - /substitute.sh && 
-        /entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --${OP:-create}=true
+        /benchbase/entrypoint.sh --bench $$BENCHMARK --config /$$BENCHMARK-config.xml --${OP:-create}=true
     deploy:
       restart_policy:
         condition: none
