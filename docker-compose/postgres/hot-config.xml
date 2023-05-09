@@ -9,7 +9,6 @@
     <password>BB_PASSWORD</password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
     <batchsize>128</batchsize>
-    <terminals>4</terminals>
 
     <ddlpath>/hot-ddl.sql</ddlpath>
 
