@@ -53,7 +53,7 @@ services:
       - BENCHMARK=${BENCHMARK:-hot}
       - ADDRESS=${R1:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
-      - USERNAME=${USERNAME:-cloud_admin}
+      - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=1
       - MINIO=${MINIO:-host.docker.internal:9000}
@@ -88,7 +88,7 @@ services:
       - BENCHMARK=${BENCHMARK:-hot}
       - ADDRESS=${R2:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
-      - USERNAME=${USERNAME:-cloud_admin}
+      - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=2
       - MINIO=${MINIO:-host.docker.internal:9000}
@@ -107,7 +107,7 @@ services:
       - BENCHMARK=${BENCHMARK:-hot}
       - ADDRESS=${R3:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
-      - USERNAME=${USERNAME:-cloud_admin}
+      - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=3
       - MINIO=${MINIO:-host.docker.internal:9000}
