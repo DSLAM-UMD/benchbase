@@ -56,7 +56,7 @@ services:
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=1
-      - MINIO=${MINIO:-host.docker.internal:9000}
+      - MINIO=${MINIO:-}
     entrypoint: 
       - /bin/bash
       - -o
@@ -91,7 +91,7 @@ services:
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=2
-      - MINIO=${MINIO:-host.docker.internal:9000}
+      - MINIO=${MINIO:-}
     deploy:
       restart_policy:
         condition: on-failure
@@ -110,7 +110,7 @@ services:
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - REGION=3
-      - MINIO=${MINIO:-host.docker.internal:9000}
+      - MINIO=${MINIO:-}
     deploy:
       restart_policy:
         condition: on-failure
