@@ -23,6 +23,7 @@ import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWrite;
 import com.oltpbenchmark.catalog.Table;
+import com.oltpbenchmark.types.DatabaseType;
 
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
@@ -33,7 +34,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public class HOTBenchmark extends BenchmarkModule {
 
@@ -44,17 +48,18 @@ public class HOTBenchmark extends BenchmarkModule {
      */
     protected final int fieldSize;
     protected final int region;
+    protected final int numRegions;
     protected final int mrpct;
-    protected int hot;
+    protected final int hot;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
 
-        this.hot = 0;
-
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
         int region = 0;
+        int numRegions = -1;
         int mrpct = 0;
+        int hot = 0;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
         if (xmlConfig != null) {
@@ -68,11 +73,15 @@ public class HOTBenchmark extends BenchmarkModule {
             }
 
             if (xmlConfig.containsKey("hot")) {
-                this.hot = xmlConfig.getInt("hot");
+                hot = xmlConfig.getInt("hot");
             }
 
             if (xmlConfig.containsKey("mrpct")) {
                 mrpct = xmlConfig.getInt("mrpct");
+            }
+
+            if (xmlConfig.containsKey("numRegions")) {
+                numRegions = xmlConfig.getInt("numRegions");
             }
         }
 
@@ -80,9 +89,10 @@ public class HOTBenchmark extends BenchmarkModule {
         if (this.fieldSize <= 0) {
             throw new RuntimeException("Invalid HOT fieldSize '" + this.fieldSize + "'");
         }
-
+        this.numRegions = numRegions;
         this.region = region;
         this.mrpct = mrpct;
+        this.hot = hot;
     }
 
     @Override
@@ -119,7 +129,37 @@ public class HOTBenchmark extends BenchmarkModule {
 
     @Override
     protected Loader<HOTBenchmark> makeLoaderImpl() {
-        return new HOTLoader(this);
+        Optional<List<Integer>> shardNum = Optional.empty();
+        if (this.workConf.getDatabaseType() == DatabaseType.CITUS) {
+            shardNum = Optional.of(new ArrayList<>());
+            String sql = String.format("""
+                with cand_shards as (
+                    select
+                      generate_series(0, 10) as num,
+                      get_shard_id_for_distribution_column('usertable', generate_series(0, 10)) as shardid
+                  )
+                  select nodename, num
+                  from pg_dist_shard_placement p
+                  join cand_shards s
+                  on p.shardid = s.shardid;   
+            """);
+            try (Connection metaConn = this.makeConnection();
+                 Statement stmt = metaConn.createStatement();
+                 ResultSet res = stmt.executeQuery(sql)) {
+                Set<String> nodes = new HashSet<>();
+                while (res.next()) {
+                    String node = res.getString(1);
+                    if (!nodes.contains(node)) {
+                        nodes.add(node);
+                        shardNum.get().add(res.getInt(2));
+                    }
+                }
+            } catch (SQLException e) {
+                LOG.error(e.getMessage(), e);
+            }
+        }
+
+        return new HOTLoader(this, shardNum);
     }
 
     @Override
@@ -135,21 +175,32 @@ public class HOTBenchmark extends BenchmarkModule {
         """);
     }
 
-    private String getPartitionRanges(Table catalog_tbl, boolean hasRegionColumn) {
-        String tableName = (this.workConf.getDatabaseType().shouldEscapeNames() ? catalog_tbl.getEscapedName() : catalog_tbl.getName());
-        return String.format("""
-            with partitions as (select i.inhrelid as partoid
-                                from pg_inherits i
-                                join pg_class cl on i.inhparent = cl.oid
-                                where cl.relname = '%s'),
-                 expressions as (select %s as region
-                                      , pg_get_expr(c.relpartbound, c.oid, true) as expression
-                                 from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-            select region
-                 , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
-                 , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
-            from expressions
-            order by region, from_val;
-        """, tableName, hasRegionColumn ? "c.relregion" : "0");
+    private String getPartitionRanges(Table tbl, boolean hasRegionColumn) {
+        String tableName = (this.workConf.getDatabaseType().shouldEscapeNames() ? tbl.getEscapedName() : tbl.getName());
+        switch (this.workConf.getDatabaseType()) {
+            case POSTGRES:
+                return String.format("""
+                    with partitions as (select i.inhrelid as partoid
+                                        from pg_inherits i
+                                        join pg_class cl on i.inhparent = cl.oid
+                                        where cl.relname = '%s'),
+                        expressions as (select %s as region
+                                            , pg_get_expr(c.relpartbound, c.oid, true) as expression
+                                        from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
+                    select region
+                        , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
+                        , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
+                    from expressions
+                    order by region, from_val;
+                """, tableName, hasRegionColumn ? "c.relregion" : "0");
+            case CITUS:
+                return String.format("""
+                    select shard as region, min(ycsb_key) as from_val, max(ycsb_key) as to_val
+                    from %s
+                    group by shard
+                """, tableName);
+            default:
+                throw new RuntimeException("Unsupported database type: " + this.workConf.getDatabaseType());
+        }
     }
 }

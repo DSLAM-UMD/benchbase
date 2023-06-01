@@ -136,26 +136,26 @@ public class ScriptRunner {
                         }
 
                         // HACK
-                        if (hasResults && !sql.toUpperCase().startsWith("CREATE")) {
-                            try (ResultSet rs = statement.getResultSet()) {
-                                if (hasResults && rs != null) {
-                                    ResultSetMetaData md = rs.getMetaData();
-                                    int cols = md.getColumnCount();
-                                    for (int i = 0; i < cols; i++) {
-                                        String name = md.getColumnLabel(i);
-                                        LOG.debug(name);
-                                    }
+                        // if (hasResults && !sql.toUpperCase().startsWith("CREATE")) {
+                        //     try (ResultSet rs = statement.getResultSet()) {
+                        //         if (hasResults && rs != null) {
+                        //             ResultSetMetaData md = rs.getMetaData();
+                        //             int cols = md.getColumnCount();
+                        //             for (int i = 0; i < cols; i++) {
+                        //                 String name = md.getColumnLabel(i);
+                        //                 LOG.debug(name);
+                        //             }
 
-                                    while (rs.next()) {
-                                        for (int i = 0; i < cols; i++) {
-                                            String value = rs.getString(i);
-                                            LOG.debug(value);
-                                        }
-                                    }
+                        //             while (rs.next()) {
+                        //                 for (int i = 0; i < cols; i++) {
+                        //                     String value = rs.getString(i);
+                        //                     LOG.debug(value);
+                        //                 }
+                        //             }
 
-                                }
-                            }
-                        }
+                        //         }
+                        //     }
+                        // }
 
                         command = null;
                     } finally {

@@ -122,7 +122,7 @@ public abstract class Loader<T extends BenchmarkModule> {
         String seqName = SQLUtil.getSequenceName(conn, getDatabaseType(), catalog_col);
         DatabaseType dbType = getDatabaseType();
         if (seqName != null) {
-            if (dbType == DatabaseType.POSTGRES) {
+            if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.CITUS) {
                 sql = String.format("SELECT setval('%s', %d)", seqName.toLowerCase(), value);
             }
             else if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {

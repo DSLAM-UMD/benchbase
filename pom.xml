@@ -76,6 +76,19 @@
             </dependencies>
         </profile>
         <profile>
+            <id>citus</id>
+            <properties>
+                <classifier>citus</classifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.6.0</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>mysql</id>
             <properties>
                 <classifier>mysql</classifier>

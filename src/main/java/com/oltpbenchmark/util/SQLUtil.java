@@ -158,7 +158,7 @@ public abstract class SQLUtil {
 
         String seqName = null;
         String sql = null;
-        if (dbType == DatabaseType.POSTGRES) {
+        if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.CITUS) {
             sql = String.format("SELECT pg_get_serial_sequence('%s', '%s')",
                     catalog_tbl.getName(), catalog_col.getName());
         } else if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {

@@ -20,6 +20,7 @@ package com.oltpbenchmark.benchmarks.hot;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.LoaderThread;
 import com.oltpbenchmark.catalog.Table;
+import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.util.SQLUtil;
 import com.oltpbenchmark.util.TextGenerator;
 
@@ -28,15 +29,26 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 class HOTLoader extends Loader<HOTBenchmark> {
-    private final int num_record;
+    private final int numRecords;
+    private final int partitionSize;
+    private final DatabaseType dbType;
+    private final Optional<List<Integer>> shards;
 
-    public HOTLoader(HOTBenchmark benchmark) {
+    public HOTLoader(HOTBenchmark benchmark, Optional<List<Integer>> shards) {
         super(benchmark);
-        this.num_record = (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor);
+        this.numRecords = (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor);
+        this.partitionSize = this.numRecords / benchmark.numRegions;
+        this.dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
+        this.shards = shards;
+        if (dbType == DatabaseType.CITUS) {
+            assert shards.isPresent();
+            assert shards.get().size() == benchmark.numRegions;
+        }
         if (LOG.isDebugEnabled()) {
-            LOG.debug("# of RECORDS:  {}", this.num_record);
+            LOG.debug("# of RECORDS:  {}", this.numRecords);
         }
     }
 
@@ -44,9 +56,9 @@ class HOTLoader extends Loader<HOTBenchmark> {
     public List<LoaderThread> createLoaderThreads() {
         List<LoaderThread> threads = new ArrayList<>();
         int count = 0;
-        while (count < this.num_record) {
+        while (count < this.numRecords) {
             final int start = count;
-            final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.num_record);
+            final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.numRecords);
             threads.add(new LoaderThread(this.benchmark) {
                 @Override
                 public void load(Connection conn) throws SQLException {
@@ -69,25 +81,29 @@ class HOTLoader extends Loader<HOTBenchmark> {
             long total = 0;
             int batch = 0;
             for (int i = start; i < stop; i++) {
-                stmt.setInt(1, i);
+                int col = 1;
+                stmt.setInt(col++, i);
                 for (int j = 0; j < HOTConstants.NUM_FIELDS; j++) {
-                    stmt.setString(j + 2, TextGenerator.randomStr(rng(), benchmark.fieldSize));
+                    stmt.setString(col++, TextGenerator.randomStr(rng(), benchmark.fieldSize));
+                }
+                if (this.dbType == DatabaseType.CITUS) {
+                    int partition = i / this.partitionSize;
+                    stmt.setInt(col++, this.shards.get().get(partition));
                 }
                 stmt.addBatch();
                 total++;
                 if (++batch >= workConf.getBatchSize()) {
-                    int[] result = stmt.executeBatch();
-
+                    stmt.executeBatch();
                     batch = 0;
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("Records Loaded %d / %d", total, this.num_record));
+                        LOG.debug(String.format("Records Loaded %d / %d", total, this.numRecords));
                     }
                 }
             }
             if (batch > 0) {
                 stmt.executeBatch();
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Records Loaded %d / %d", total, this.num_record));
+                    LOG.debug(String.format("Records Loaded %d / %d", total, this.numRecords));
                 }
             }
         }

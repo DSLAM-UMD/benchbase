@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<parameters>
+
+    <!-- Connection details -->
+    <type>CITUS</type>
+    <driver>org.postgresql.Driver</driver>
+    <url>jdbc:postgresql://localhost:5432/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
+    <username>postgres</username>
+    <password></password>
+    <isolation>TRANSACTION_SERIALIZABLE</isolation>
+    <batchsize>128</batchsize>
+
+    <!-- Scalefactor in YCSB is *1000 the number of rows in the USERTABLE-->
+    <scalefactor>30</scalefactor>
+    
+    <!-- Optional: Override the field size for each column in USERTABLE -->
+    <fieldSize>8</fieldSize>
+    <!-- Optional: Number of hot keys per partition -->
+    <hot>0</hot>
+
+    <numRegions>3</numRegions>
+    <region>1</region>
+    <!-- Percentage of multiregion transactions -->
+    <mrpct>100</mrpct>
+
+    <!-- The workload -->
+    <terminals>1</terminals>
+    <works>
+        <work>
+            <time>10</time>
+            <rate>10000</rate>
+            <weights>100,0</weights>
+        </work>
+    </works>
+
+    <!-- HOT Procedures declaration -->
+    <transactiontypes>
+        <transactiontype>
+            <name>ReadModifyWrite</name>
+        </transactiontype>
+        <transactiontype>
+            <name>RMWLocalRORemote</name>
+        </transactiontype>
+    </transactiontypes>
+</parameters>
