@@ -22,9 +22,9 @@ configs:
   substitute:
     file: ./substitute.sh
   benchmark_config:
-    file: ./postgres/${BENCHMARK:-hot}-config.xml
+    file: ./${DB:-postgres}/${BENCHMARK:-hot}-config.xml
   benchmark_ddl:
-    file: ./postgres/${BENCHMARK:-hot}-ddl.sql
+    file: ./${DB:-postgres}/${BENCHMARK:-hot}-ddl.sql
   upload-and-clean:
     file: ./upload-and-clean.sh
 
@@ -35,7 +35,7 @@ networks:
 
 services:
   bb-r1: &benchbase
-    image: ghcr.io/umd-dslam/benchbase-postgres:latest
+    image: ghcr.io/umd-dslam/benchbase:latest
     configs:
       - source: substitute
         target: /substitute.sh
@@ -55,6 +55,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
+      - NUM_REGIONS=3
       - REGION=1
       - MINIO=${MINIO:-}
     entrypoint: 
@@ -90,6 +91,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
+      - NUM_REGIONS=3
       - REGION=2
       - MINIO=${MINIO:-}
     deploy:
@@ -109,6 +111,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
+      - NUM_REGIONS=3
       - REGION=3
       - MINIO=${MINIO:-}
     deploy:

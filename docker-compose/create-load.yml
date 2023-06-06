@@ -16,9 +16,9 @@ configs:
   substitute:
     file: ./substitute.sh
   benchmark_config:
-    file: ./postgres/${BENCHMARK:-hot}-config.xml
+    file: ./${DB:-postgres}/${BENCHMARK:-hot}-config.xml
   benchmark_ddl:
-    file: ./postgres/${BENCHMARK:-hot}-ddl.sql
+    file: ./${DB:-postgres}/${BENCHMARK:-hot}-ddl.sql
 
 networks:
   default:
@@ -27,7 +27,7 @@ networks:
 
 services:
   bb:
-    image: ghcr.io/umd-dslam/benchbase-postgres:latest
+    image: ghcr.io/umd-dslam/benchbase:latest
     configs:
       - source: substitute
         target: /substitute.sh
@@ -44,6 +44,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
+      - NUM_REGIONS=3
       - REGION=0
     entrypoint: 
       - /bin/bash
