@@ -44,7 +44,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
-      - NUM_REGIONS=3
+      - NUM_REGIONS=${NUM_REGIONS:-3}
       - REGION=0
     entrypoint: 
       - /bin/bash

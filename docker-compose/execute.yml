@@ -55,7 +55,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
-      - NUM_REGIONS=3
+      - NUM_REGIONS=${NUM_REGIONS:-3}
       - REGION=1
       - MINIO=${MINIO:-}
     entrypoint: 
@@ -91,7 +91,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
-      - NUM_REGIONS=3
+      - NUM_REGIONS=${NUM_REGIONS:-3}
       - REGION=2
       - MINIO=${MINIO:-}
     deploy:
@@ -111,7 +111,7 @@ services:
       - DATABASE=${DATABASE:-postgres}
       - USER=${USER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
-      - NUM_REGIONS=3
+      - NUM_REGIONS=${NUM_REGIONS:-3}
       - REGION=3
       - MINIO=${MINIO:-}
     deploy:
