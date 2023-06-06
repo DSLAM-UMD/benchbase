@@ -9,6 +9,7 @@ public class Partition {
     private int hot;
 
     public Partition(int id, int from, int to, int hot) {
+        this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
@@ -31,7 +32,7 @@ public class Partition {
     }
 
     public String toString() {
-        return "[" + this.from + ", " + this.to + ")";
+        return this.id + ": [" + this.from + ", " + this.to + ")";
     }
 
     private int next(Random rng) {

@@ -108,8 +108,8 @@ public class HOTBenchmark extends BenchmarkModule {
                 try (ResultSet res = stmt.executeQuery(checkRegionColumn())) {
                     hasRegionColumn = res.next();
                 }
-                String partitionRanges = getPartitionRanges(t, hasRegionColumn);
-                try (ResultSet res = stmt.executeQuery(partitionRanges)) {
+                String partitionRangesQuery = getPartitionRanges(t, hasRegionColumn);
+                try (ResultSet res = stmt.executeQuery(partitionRangesQuery)) {
                     List<Partition> partitions = new ArrayList<Partition>();
                     while (res.next()) {
                         partitions.add(new Partition(res.getInt(1), res.getInt(2), res.getInt(3), this.hot));
