@@ -22,6 +22,7 @@ import com.oltpbenchmark.api.Procedure.UserAbortException;
 import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.hot.procedures.*;
+import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.TextGenerator;
 
@@ -38,6 +39,7 @@ import java.util.List;
  */
 class HOTWorker extends Worker<HOTBenchmark> {
 
+    private final DatabaseType dbType;
     private final char[] data;
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
     private final String[] results = new String[HOTConstants.NUM_FIELDS];
@@ -50,6 +52,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
         super(benchmarkModule, id);
+        this.dbType = benchmarkModule.getWorkloadConfiguration().getDatabaseType();
         this.data = new char[benchmarkModule.fieldSize];
         this.homePartition = partitions.get(benchmarkModule.region);
         this.otherPartitions = new ArrayList<>();
@@ -61,14 +64,15 @@ class HOTWorker extends Worker<HOTBenchmark> {
         this.mrpct = benchmarkModule.mrpct;
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
-        // everytime we want to execute a txn. This is important to do on 
+        // everytime we want to execute a txn. This is important to do on
         // a client machine with not a lot of cores
         this.procReadModifyWrite = this.getProcedure(ReadModifyWrite.class);
         this.procRMWLocalRORemote = this.getProcedure(RMWLocalRORemote.class);
     }
 
     @Override
-    protected TransactionStatus executeWork(Connection conn, TransactionType nextTrans) throws UserAbortException, SQLException {
+    protected TransactionStatus executeWork(Connection conn, TransactionType nextTrans)
+            throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
         if (procClass.equals(ReadModifyWrite.class)) {
@@ -81,20 +85,21 @@ class HOTWorker extends Worker<HOTBenchmark> {
     }
 
     private void readModifyWrite(Connection conn) throws SQLException {
-        int[] keys = new int[4];
-        keys[0] = this.homePartition.nextHot(rng());
-        keys[1] = this.homePartition.nextCold(rng());
+        Key[] keys = new Key[4];
+        keys[0] = new Key(this.homePartition.nextHot(rng()), homePartition.getId());
+        keys[1] = new Key(this.homePartition.nextCold(rng()), homePartition.getId());
 
         Partition partition = this.homePartition;
         if (rng().nextInt(100) + 1 <= this.mrpct) {
             int partitionIndex = rng().nextInt(this.otherPartitions.size());
             partition = this.otherPartitions.get(partitionIndex);
         }
-        keys[2] = partition.nextHot(rng());
-        keys[3] = partition.nextCold(rng());
+        keys[2] = new Key(partition.nextHot(rng()), partition.getId());
+        keys[3] = new Key(partition.nextCold(rng()), partition.getId());
 
         this.buildParameters();
-        this.procReadModifyWrite.run(conn, keys, this.params, this.results);
+        boolean withShard = this.dbType == DatabaseType.CITUS;
+        this.procReadModifyWrite.run(conn, withShard, keys, this.params, this.results);
     }
 
     private void rmwLocalRORemote(Connection conn) throws SQLException {

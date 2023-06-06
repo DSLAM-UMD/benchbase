@@ -103,7 +103,7 @@ public class HOTBenchmark extends BenchmarkModule {
             // LIST OF PARTITIONS
             Table t = this.getCatalog().getTable("USERTABLE");
             try (Connection metaConn = this.makeConnection();
-                 Statement stmt = metaConn.createStatement()) {
+                    Statement stmt = metaConn.createStatement()) {
                 boolean hasRegionColumn = false;
                 try (ResultSet res = stmt.executeQuery(checkRegionColumn())) {
                     hasRegionColumn = res.next();
@@ -112,7 +112,7 @@ public class HOTBenchmark extends BenchmarkModule {
                 try (ResultSet res = stmt.executeQuery(partitionRanges)) {
                     List<Partition> partitions = new ArrayList<Partition>();
                     while (res.next()) {
-                        partitions.add(new Partition(res.getInt(2), res.getInt(3), this.hot));
+                        partitions.add(new Partition(res.getInt(1), res.getInt(2), res.getInt(3), this.hot));
                         LOG.info(partitions.get(partitions.size() - 1).toString());
                     }
 
@@ -129,29 +129,29 @@ public class HOTBenchmark extends BenchmarkModule {
 
     @Override
     protected Loader<HOTBenchmark> makeLoaderImpl() {
-        Optional<List<Integer>> shardNum = Optional.empty();
+        Optional<List<Integer>> shardNums = Optional.empty();
         if (this.workConf.getDatabaseType() == DatabaseType.CITUS) {
-            shardNum = Optional.of(new ArrayList<>());
+            shardNums = Optional.of(new ArrayList<>());
             String sql = String.format("""
-                with cand_shards as (
-                    select
-                      generate_series(0, 10) as num,
-                      get_shard_id_for_distribution_column('usertable', generate_series(0, 10)) as shardid
-                  )
-                  select nodename, num
-                  from pg_dist_shard_placement p
-                  join cand_shards s
-                  on p.shardid = s.shardid;   
-            """);
+                        with cand_shards as (
+                            select
+                              generate_series(0, 10) as num,
+                              get_shard_id_for_distribution_column('usertable', generate_series(0, 10)) as shardid
+                          )
+                          select nodename, num
+                          from pg_dist_shard_placement p
+                          join cand_shards s
+                          on p.shardid = s.shardid;
+                    """);
             try (Connection metaConn = this.makeConnection();
-                 Statement stmt = metaConn.createStatement();
-                 ResultSet res = stmt.executeQuery(sql)) {
+                    Statement stmt = metaConn.createStatement();
+                    ResultSet res = stmt.executeQuery(sql)) {
                 Set<String> nodes = new HashSet<>();
                 while (res.next()) {
                     String node = res.getString(1);
                     if (!nodes.contains(node)) {
                         nodes.add(node);
-                        shardNum.get().add(res.getInt(2));
+                        shardNums.get().add(res.getInt(2));
                     }
                 }
             } catch (SQLException e) {
@@ -159,7 +159,7 @@ public class HOTBenchmark extends BenchmarkModule {
             }
         }
 
-        return new HOTLoader(this, shardNum);
+        return new HOTLoader(this, shardNums);
     }
 
     @Override
@@ -169,10 +169,10 @@ public class HOTBenchmark extends BenchmarkModule {
 
     private String checkRegionColumn() {
         return String.format("""
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name='pg_class' and column_name='relregion';
-        """);
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name='pg_class' and column_name='relregion';
+                """);
     }
 
     private String getPartitionRanges(Table tbl, boolean hasRegionColumn) {
@@ -180,25 +180,25 @@ public class HOTBenchmark extends BenchmarkModule {
         switch (this.workConf.getDatabaseType()) {
             case POSTGRES:
                 return String.format("""
-                    with partitions as (select i.inhrelid as partoid
-                                        from pg_inherits i
-                                        join pg_class cl on i.inhparent = cl.oid
-                                        where cl.relname = '%s'),
-                        expressions as (select %s as region
-                                            , pg_get_expr(c.relpartbound, c.oid, true) as expression
-                                        from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-                    select region
-                        , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
-                        , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
-                    from expressions
-                    order by region, from_val;
-                """, tableName, hasRegionColumn ? "c.relregion" : "0");
+                            with partitions as (select i.inhrelid as partoid
+                                                from pg_inherits i
+                                                join pg_class cl on i.inhparent = cl.oid
+                                                where cl.relname = '%s'),
+                                expressions as (select %s as region
+                                                    , pg_get_expr(c.relpartbound, c.oid, true) as expression
+                                                from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
+                            select region
+                                , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
+                                , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
+                            from expressions
+                            order by region, from_val;
+                        """, tableName, hasRegionColumn ? "c.relregion" : "0");
             case CITUS:
                 return String.format("""
-                    select shard as region, min(ycsb_key) as from_val, max(ycsb_key) as to_val
-                    from %s
-                    group by shard
-                """, tableName);
+                            select shard, min(ycsb_key) as from_val, max(ycsb_key) as to_val
+                            from %s
+                            group by shard
+                        """, tableName);
             default:
                 throw new RuntimeException("Unsupported database type: " + this.workConf.getDatabaseType());
         }

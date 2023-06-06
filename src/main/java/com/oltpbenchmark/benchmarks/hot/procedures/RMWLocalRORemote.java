@@ -30,15 +30,19 @@ import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class RMWLocalRORemote extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " WHERE YCSB_KEY=?"
-    );
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?");
+    public final SQLStmt selectStmtWithShard = new SQLStmt(
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and SHARD=?");
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?"
-    );
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
+    public final SQLStmt updateAllStmtWithShard = new SQLStmt(
+            "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and SHARD=?");
 
-    //FIXME: The value in ysqb is a byteiterator
-    public void run(Connection conn, int[] local_keys, int[] remote_keys, String[] fields, String[] results) throws SQLException {
+    // FIXME: The value in ysqb is a byteiterator
+    public void run(Connection conn, int[] local_keys, int[] remote_keys, String[] fields, String[] results)
+            throws SQLException {
         for (int k : local_keys) {
             try (PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
                 stmt.setInt(1, k);

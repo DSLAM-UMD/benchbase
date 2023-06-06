@@ -30,19 +30,29 @@ import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class ReadModifyWrite extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?"
-    );
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?");
+    public final SQLStmt selectStmtWithShard = new SQLStmt(
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and SHARD=?");
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?"
-    );
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
+    public final SQLStmt updateAllStmtWithShard = new SQLStmt(
+            "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and SHARD=?");
 
-    //FIXME: The value in ysqb is a byteiterator
-    public void run(Connection conn, int[] keynames, String[] fields, String[] results) throws SQLException {
+    // FIXME: The value in ysqb is a byteiterator
+    public void run(Connection conn, boolean withShard, Key[] keys, String[] fields, String[] results)
+            throws SQLException {
+        SQLStmt chosenSelectStmt = withShard ? selectStmtWithShard : selectStmt;
+        SQLStmt chosenUpdateAllStmt = withShard ? updateAllStmtWithShard : updateAllStmt;
 
-        for (int k : keynames) {
-            try (PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
-                stmt.setInt(1, k);
+        for (Key k : keys) {
+            try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenSelectStmt)) {
+                stmt.setInt(1, k.name);
+                if (withShard) {
+                    stmt.setInt(2, k.shard);
+                }
+
                 try (ResultSet r = stmt.executeQuery()) {
                     while (r.next()) {
                         for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
@@ -54,8 +64,11 @@ public class ReadModifyWrite extends Procedure {
             }
 
             // Update that mofo
-            try (PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
-                stmt.setInt(11, k);
+            try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenUpdateAllStmt)) {
+                stmt.setInt(11, k.name);
+                if (withShard) {
+                    stmt.setInt(12, k.shard);
+                }
 
                 for (int i = 0; i < fields.length; i++) {
                     stmt.setString(i + 1, fields[i]);
