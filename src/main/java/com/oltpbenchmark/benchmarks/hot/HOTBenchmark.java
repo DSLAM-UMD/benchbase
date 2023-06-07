@@ -198,6 +198,7 @@ public class HOTBenchmark extends BenchmarkModule {
                             select shard, min(ycsb_key) as from_val, max(ycsb_key) as to_val
                             from %s
                             group by shard
+                            order by from_val;
                         """, tableName);
             default:
                 throw new RuntimeException("Unsupported database type: " + this.workConf.getDatabaseType());
