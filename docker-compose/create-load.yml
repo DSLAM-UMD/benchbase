@@ -42,7 +42,7 @@ services:
       - BENCHMARK=${BENCHMARK:-hot}
       - ADDRESS=${ADDRESS:-host.docker.internal:55432}
       - DATABASE=${DATABASE:-postgres}
-      - USER=${USER:-cloud_admin}
+      - DBUSER=${DBUSER:-cloud_admin}
       - PASSWORD=${PASSWORD:-}
       - NUM_REGIONS=${NUM_REGIONS:-3}
       - REGION=0
