@@ -141,6 +141,19 @@
             </dependencies>
         </profile>
         <profile>
+            <id>yugabytedb</id>
+            <properties>
+                <classifier>yugabytedb</classifier>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>42.6.0</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>phoenix</id>
             <properties>
                 <classifier>phoenix</classifier>

@@ -25,32 +25,38 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Optional;
 
 import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class ReadModifyWrite extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
             "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?");
-    public final SQLStmt selectStmtWithShard = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and SHARD=?");
+    public final SQLStmt selectStmtWithGeoPartition = new SQLStmt(
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and GEO_PARTITION=?");
+
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
                     "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
-    public final SQLStmt updateAllStmtWithShard = new SQLStmt(
+    public final SQLStmt updateAllStmtWithGeoPartition = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and SHARD=?");
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and GEO_PARTITION=?");
 
     // FIXME: The value in ysqb is a byteiterator
-    public void run(Connection conn, boolean withShard, Key[] keys, String[] fields, String[] results)
+    public void run(Connection conn, Optional<Class<?>> geoPartitionType, Key[] keys, String[] fields, String[] results)
             throws SQLException {
-        SQLStmt chosenSelectStmt = withShard ? selectStmtWithShard : selectStmt;
-        SQLStmt chosenUpdateAllStmt = withShard ? updateAllStmtWithShard : updateAllStmt;
+        SQLStmt chosenSelectStmt = geoPartitionType.isPresent() ? selectStmtWithGeoPartition : selectStmt;
+        SQLStmt chosenUpdateAllStmt = geoPartitionType.isPresent() ? updateAllStmtWithGeoPartition : updateAllStmt;
 
         for (Key k : keys) {
             try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenSelectStmt)) {
                 stmt.setInt(1, k.name);
-                if (withShard) {
-                    stmt.setInt(2, k.shard);
+                if (geoPartitionType.isPresent()) {
+                    if (geoPartitionType.get().equals(Integer.class)) {
+                        stmt.setInt(2, Integer.parseInt(k.partition));
+                    } else if (geoPartitionType.get().equals(String.class)) {
+                        stmt.setString(2, k.partition);
+                    }
                 }
 
                 try (ResultSet r = stmt.executeQuery()) {
@@ -66,8 +72,12 @@ public class ReadModifyWrite extends Procedure {
             // Update that mofo
             try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenUpdateAllStmt)) {
                 stmt.setInt(11, k.name);
-                if (withShard) {
-                    stmt.setInt(12, k.shard);
+                if (geoPartitionType.isPresent()) {
+                    if (geoPartitionType.get().equals(Integer.class)) {
+                        stmt.setInt(12, Integer.parseInt(k.partition));
+                    } else if (geoPartitionType.get().equals(String.class)) {
+                        stmt.setString(12, k.partition);
+                    }
                 }
 
                 for (int i = 0; i < fields.length; i++) {

@@ -2,10 +2,10 @@ package com.oltpbenchmark.benchmarks.hot.procedures;
 
 public class Key {
   public int name;
-  public int shard;
+  public String partition;
 
-  public Key(int name, int shard) {
+  public Key(int name, String partition) {
     this.name = name;
-    this.shard = shard;
+    this.partition = partition;
   }
 }

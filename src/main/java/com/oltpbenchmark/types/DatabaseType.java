@@ -50,7 +50,8 @@ public enum DatabaseType {
     SQLSERVER(true, true, true),
     TIMESTEN(true, false),
     PHOENIX(true, true),
-    CITUS(false, false, true);
+    CITUS(false, false, true),
+    YUGABYTEDB(false, false, true);
 
 
     DatabaseType(boolean escapeNames, boolean includeColNames, boolean loadNeedsUpdateColumnSequence) {

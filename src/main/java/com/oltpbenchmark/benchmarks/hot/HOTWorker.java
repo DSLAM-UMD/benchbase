@@ -30,6 +30,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * HOTWorker Implementation
@@ -98,8 +99,18 @@ class HOTWorker extends Worker<HOTBenchmark> {
         keys[3] = new Key(partition.nextCold(rng()), partition.getId());
 
         this.buildParameters();
-        boolean withShard = this.dbType == DatabaseType.CITUS;
-        this.procReadModifyWrite.run(conn, withShard, keys, this.params, this.results);
+
+        switch (this.dbType) {
+            case CITUS:
+                this.procReadModifyWrite.run(conn, Optional.of(Integer.class), keys, this.params, this.results);
+                break;
+            case YUGABYTEDB:
+                this.procReadModifyWrite.run(conn, Optional.of(String.class), keys, this.params, this.results);
+                break;
+            default:
+                this.procReadModifyWrite.run(conn, Optional.empty(), keys, this.params, this.results);
+                break;
+        }
     }
 
     private void rmwLocalRORemote(Connection conn) throws SQLException {

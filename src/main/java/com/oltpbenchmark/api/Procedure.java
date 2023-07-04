@@ -113,6 +113,7 @@ public abstract class Procedure {
                 this.dbType == DatabaseType.POSTGRES
                 || this.dbType == DatabaseType.CITUS
                 || this.dbType == DatabaseType.COCKROACHDB
+                || this.dbType == DatabaseType.YUGABYTEDB
                 || this.dbType == DatabaseType.SQLSERVER
                 || this.dbType == DatabaseType.SQLAZURE
             )

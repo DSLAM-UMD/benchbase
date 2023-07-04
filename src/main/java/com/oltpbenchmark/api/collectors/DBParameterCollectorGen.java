@@ -28,6 +28,7 @@ public class DBParameterCollectorGen {
                 return new MySQLCollector(dbUrl, username, password);
             case POSTGRES:
             case CITUS:
+            case YUGABYTEDB:
                 return new PostgresCollector(dbUrl, username, password);
             case COCKROACHDB:
                 return new CockroachCollector(dbUrl, username, password);

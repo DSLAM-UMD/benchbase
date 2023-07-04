@@ -11,8 +11,8 @@ CREATE TABLE usertable (
     field8   text,
     field9   text,
     field10  text,
-    shard    int
+    geo_partition int
 );
 
 CREATE INDEX ON usertable (ycsb_key);
-SELECT create_distributed_table('usertable', 'shard');
+SELECT create_distributed_table('usertable', 'geo_partition');

@@ -44,6 +44,7 @@ public class AutoIncrementPreparedStatement implements PreparedStatement {
         if (this.dbType == DatabaseType.POSTGRES
             || this.dbType == DatabaseType.CITUS
             || this.dbType == DatabaseType.COCKROACHDB
+            || this.dbType == DatabaseType.YUGABYTEDB
             || this.dbType == DatabaseType.SQLSERVER
             || this.dbType == DatabaseType.SQLAZURE
         ) {

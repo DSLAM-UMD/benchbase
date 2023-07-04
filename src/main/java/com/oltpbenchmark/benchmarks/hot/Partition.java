@@ -3,19 +3,19 @@ package com.oltpbenchmark.benchmarks.hot;
 import java.util.Random;
 
 public class Partition {
-    private int id;
+    private String id;
     private int from;
     private int to;
     private int hot;
 
-    public Partition(int id, int from, int to, int hot) {
+    public Partition(String id, int from, int to, int hot) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
