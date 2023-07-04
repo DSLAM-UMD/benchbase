@@ -20,7 +20,6 @@ package com.oltpbenchmark.benchmarks.hot;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.LoaderThread;
 import com.oltpbenchmark.catalog.Table;
-import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.util.SQLUtil;
 import com.oltpbenchmark.util.TextGenerator;
 
@@ -29,24 +28,15 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 class HOTLoader extends Loader<HOTBenchmark> {
     private final int numRecords;
-    private final int partitionSize;
-    private final DatabaseType dbType;
-    private final Optional<List<Integer>> shards;
+    private final PartitionHelper partitionHelper;
 
-    public HOTLoader(HOTBenchmark benchmark, Optional<List<Integer>> shards) {
+    public HOTLoader(HOTBenchmark benchmark, PartitionHelper partitionHelper) {
         super(benchmark);
         this.numRecords = (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor);
-        this.partitionSize = this.numRecords / benchmark.numRegions;
-        this.dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
-        this.shards = shards;
-        if (dbType == DatabaseType.CITUS) {
-            assert shards.isPresent();
-            assert shards.get().size() == benchmark.numRegions;
-        }
+        this.partitionHelper = partitionHelper;
         if (LOG.isDebugEnabled()) {
             LOG.debug("# of RECORDS:  {}", this.numRecords);
         }
@@ -86,10 +76,8 @@ class HOTLoader extends Loader<HOTBenchmark> {
                 for (int j = 0; j < HOTConstants.NUM_FIELDS; j++) {
                     stmt.setString(col++, TextGenerator.randomStr(rng(), benchmark.fieldSize));
                 }
-                if (this.dbType == DatabaseType.CITUS) {
-                    int partition = i / this.partitionSize;
-                    stmt.setInt(col++, this.shards.get().get(partition));
-                }
+                partitionHelper.setPartition(stmt, i);
+
                 stmt.addBatch();
                 total++;
                 if (++batch >= workConf.getBatchSize()) {
