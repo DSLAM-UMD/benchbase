@@ -5,15 +5,15 @@
 #   NETWORK_MODE=host docker compose -f execute.yml up
 # 
 # Neon is run with docker compose
-#   export R1="compute-r1:55432"
-#   export R2="compute-r2:55432"
-#   export R3="compute-r3:55432"
+#   export R1="compute-r1:55433"
+#   export R2="compute-r2:55433"
+#   export R3="compute-r3:55433"
 #   MINIO=minio:9000 docker compose -f execute.yml up
 #
 # Neon is run in a swarm
-#   export R1="compute-r1:55432"
-#   export R2="compute-r2:55432"
-#   export R3="compute-r3:55432"
+#   export R1="compute-r1:55433"
+#   export R2="compute-r2:55433"
+#   export R3="compute-r3:55433"
 #   MINIO=minio:9000 docker stack deploy --compose-file execute.yml bb
 #
 version: '3.8'
