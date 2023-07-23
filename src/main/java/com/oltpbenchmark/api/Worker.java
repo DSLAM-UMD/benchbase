@@ -423,7 +423,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         LOG.debug(String.format("%s %s committing...", this, transactionType));
                     }
 
+                    long start = System.nanoTime();
                     conn.commit();
+                    long end = System.nanoTime();
+                    LOG.info("Transaction commit took {} ms", (end - start) / 1000000.0);
 
                     break;
 

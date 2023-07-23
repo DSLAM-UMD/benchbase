@@ -27,9 +27,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 public class ReadModifyWrite extends Procedure {
+    private static final Logger LOG = LoggerFactory.getLogger(ReadModifyWrite.class);
+
     public final SQLStmt selectStmt = new SQLStmt(
             "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?");
     public final SQLStmt selectStmtWithGeoPartition = new SQLStmt(
@@ -47,7 +52,8 @@ public class ReadModifyWrite extends Procedure {
             throws SQLException {
         SQLStmt chosenSelectStmt = geoPartitionType.isPresent() ? selectStmtWithGeoPartition : selectStmt;
         SQLStmt chosenUpdateAllStmt = geoPartitionType.isPresent() ? updateAllStmtWithGeoPartition : updateAllStmt;
-
+        
+        int counter = 0;
         for (Key k : keys) {
             try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenSelectStmt)) {
                 stmt.setInt(1, k.name);
@@ -58,7 +64,7 @@ public class ReadModifyWrite extends Procedure {
                         stmt.setString(2, k.partition);
                     }
                 }
-
+                long start = System.nanoTime();
                 try (ResultSet r = stmt.executeQuery()) {
                     while (r.next()) {
                         for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
@@ -66,7 +72,8 @@ public class ReadModifyWrite extends Procedure {
                         }
                     }
                 }
-
+                long end = System.nanoTime();
+                LOG.info("Read {}: {} ms", counter, (end - start) / 1000000.0);
             }
 
             // Update that mofo
@@ -83,8 +90,12 @@ public class ReadModifyWrite extends Procedure {
                 for (int i = 0; i < fields.length; i++) {
                     stmt.setString(i + 1, fields[i]);
                 }
+                long start = System.nanoTime();
                 stmt.executeUpdate();
+                long end = System.nanoTime();
+                LOG.info("Write {}: {} ms", counter, (end - start) / 1000000.0);
             }
+            counter++;
         }
 
     }
