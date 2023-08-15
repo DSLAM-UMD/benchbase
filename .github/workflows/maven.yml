@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        profile: [ 'postgres' ]
+        profile: [ 'cockroachdb', 'postgres' ]
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -304,52 +304,52 @@ jobs:
   ## ----------------------------------------------------------------------------------
   ## COCKROACHDB
   ## ----------------------------------------------------------------------------------
-  # cockroachdb:
-  #   needs: package-and-upload
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
-  #   services:
-  #     cockroach: # https://hub.docker.com/repository/docker/timveil/cockroachdb-single-node
-  #       image: timveil/cockroachdb-single-node:latest
-  #       env:
-  #         DATABASE_NAME: benchbase
-  #         MEMORY_SIZE: .75
-  #       ports:
-  #         - 26257:26257
-  #   steps:
-  #     - name: Download artifact
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: benchbase-cockroachdb
+  cockroachdb:
+    needs: package-and-upload
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        benchmark: [ 'auctionmark', 'epinions', 'hyadapt', 'noop', 'otmetrics', 'resourcestresser', 'seats', 'sibench', 'smallbank', 'tatp', 'tpcc', 'tpch', 'twitter', 'voter', 'wikipedia', 'ycsb' ]
+    services:
+      cockroach: # https://hub.docker.com/repository/docker/timveil/cockroachdb-single-node
+        image: timveil/cockroachdb-single-node:latest
+        env:
+          DATABASE_NAME: benchbase
+          MEMORY_SIZE: .75
+        ports:
+          - 26257:26257
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: benchbase-cockroachdb
 
-  #     - name: Extract artifact
-  #       run: |
-  #         tar xvzf benchbase-cockroachdb.tgz --strip-components=1
+      - name: Extract artifact
+        run: |
+          tar xvzf benchbase-cockroachdb.tgz --strip-components=1
 
-  #     - name: Delete artifact
-  #       run: |
-  #         rm -rf benchbase-cockroachdb.tgz
+      - name: Delete artifact
+        run: |
+          rm -rf benchbase-cockroachdb.tgz
 
-  #     - name: Set up JDK
-  #       uses: actions/setup-java@v3
-  #       with:
-  #         java-version: ${{env.JAVA_VERSION}}
-  #         distribution: 'temurin'
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{env.JAVA_VERSION}}
+          distribution: 'temurin'
 
-  #     - name: Run benchmark
-  #       run: |
-  #         java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/cockroachdb/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
-  #         # FIXME: Reduce the error rate so we don't need these overrides.
-  #         # FIXME: Reduce the error rate so we don't need these overrides.
-  #         if [ ${{matrix.benchmark}} == auctionmark ]; then
-  #             ERRORS_THRESHOLD=0.02
-  #         elif [ ${{matrix.benchmark}} == tatp ]; then
-  #             ERRORS_THRESHOLD=0.05
-  #         fi
-  #         ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
+      - name: Run benchmark
+        run: |
+          java -jar benchbase.jar -b ${{matrix.benchmark}} -c config/cockroachdb/sample_${{matrix.benchmark}}_config.xml --create=true --load=true --execute=true --json-histograms results/histograms.json
+          # FIXME: Reduce the error rate so we don't need these overrides.
+          # FIXME: Reduce the error rate so we don't need these overrides.
+          if [ ${{matrix.benchmark}} == auctionmark ]; then
+              ERRORS_THRESHOLD=0.02
+          elif [ ${{matrix.benchmark}} == tatp ]; then
+              ERRORS_THRESHOLD=0.05
+          fi
+          ./scripts/check_histogram_results.sh results/histograms.json $ERRORS_THRESHOLD
 
   ## ----------------------------------------------------------------------------------
   ## MSSQL
@@ -437,7 +437,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
-      BENCHBASE_PROFILES: 'postgres'
+      BENCHBASE_PROFILES: 'cockroachdb postgres'
       CONTAINER_REGISTRY_NAME: ghcr.io/${{ github.repository_owner }}
     permissions:
       contents: read
