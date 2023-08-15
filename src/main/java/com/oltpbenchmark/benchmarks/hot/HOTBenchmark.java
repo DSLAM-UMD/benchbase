@@ -91,8 +91,7 @@ public class HOTBenchmark extends BenchmarkModule {
     protected List<Worker<? extends BenchmarkModule>> makeWorkersImpl() {
         List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
         try {
-            List<Partition> partitions = new PartitionHelper(this)
-                    .getPartitions(this.getCatalog().getTable("USERTABLE"));
+            List<Partition> partitions = new PartitionHelper(this).getPartitions("USERTABLE");
             for (int i = 0; i < workConf.getTerminals(); ++i) {
                 workers.add(new HOTWorker(this, i, partitions));
             }

@@ -14,7 +14,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.oltpbenchmark.catalog.Table;
 import com.oltpbenchmark.types.DatabaseType;
 
 public class PartitionHelper {
@@ -66,9 +65,8 @@ public class PartitionHelper {
     }
   }
 
-  public List<Partition> getPartitions(Table tbl) throws SQLException {
+  public List<Partition> getPartitions(String tableName) throws SQLException {
     DatabaseType dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
-    String tableName = (dbType.shouldEscapeNames() ? tbl.getEscapedName() : tbl.getName());
     String partitionRangesQuery;
     switch (dbType) {
       case POSTGRES:
