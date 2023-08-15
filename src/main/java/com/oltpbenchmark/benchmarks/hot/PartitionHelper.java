@@ -82,7 +82,6 @@ public class PartitionHelper {
             ResultSet res = stmt.executeQuery(checkRegionColumnQuery)) {
           hasRegionColumn = res.next();
         }
-        LOG.info("Has region column: {}", hasRegionColumn);
 
         partitionRangesQuery = String.format("""
               with partitions as (select i.inhrelid as partoid
@@ -111,7 +110,6 @@ public class PartitionHelper {
       default:
         throw new RuntimeException("Unsupported database type: " + dbType);
     }
-    LOG.info("Partition ranges query: {}", partitionRangesQuery);
     List<Partition> partitions = new ArrayList<Partition>();
     try (Connection metaConn = benchmark.makeConnection();
         Statement stmt = metaConn.createStatement();
