@@ -82,12 +82,13 @@ public class PartitionHelper {
             ResultSet res = stmt.executeQuery(checkRegionColumnQuery)) {
           hasRegionColumn = res.next();
         }
+        LOG.info("Has region column: {}", hasRegionColumn);
 
         partitionRangesQuery = String.format("""
               with partitions as (select i.inhrelid as partoid
                                   from pg_inherits i
                                   join pg_class cl on i.inhparent = cl.oid
-                                  where cl.relname = '%s'),
+                                  where lower(cl.relname) = lower('%s')),
                   expressions as (select %s as region
                                       , pg_get_expr(c.relpartbound, c.oid, true) as expression
                                   from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
@@ -110,7 +111,7 @@ public class PartitionHelper {
       default:
         throw new RuntimeException("Unsupported database type: " + dbType);
     }
-
+    LOG.info("Partition ranges query: {}", partitionRangesQuery);
     List<Partition> partitions = new ArrayList<Partition>();
     try (Connection metaConn = benchmark.makeConnection();
         Statement stmt = metaConn.createStatement();
