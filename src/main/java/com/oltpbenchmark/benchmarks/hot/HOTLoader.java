@@ -32,11 +32,15 @@ import java.util.List;
 class HOTLoader extends Loader<HOTBenchmark> {
     private final int numRecords;
     private final PartitionHelper partitionHelper;
+    private final int loadFrom, loadTo;
 
     public HOTLoader(HOTBenchmark benchmark, PartitionHelper partitionHelper) {
         super(benchmark);
-        this.numRecords = (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor);
         this.partitionHelper = partitionHelper;
+        this.loadFrom = benchmark.loadFrom;
+        this.loadTo = benchmark.loadTo == -1 ? 
+            (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor) : benchmark.loadTo;
+        this.numRecords = this.loadTo - this.loadFrom;
         if (LOG.isDebugEnabled()) {
             LOG.debug("# of RECORDS:  {}", this.numRecords);
         }
@@ -45,10 +49,10 @@ class HOTLoader extends Loader<HOTBenchmark> {
     @Override
     public List<LoaderThread> createLoaderThreads() {
         List<LoaderThread> threads = new ArrayList<>();
-        int count = 0;
-        while (count < this.numRecords) {
+        int count = this.loadFrom;
+        while (count < this.loadTo) {
             final int start = count;
-            final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.numRecords);
+            final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.loadTo);
             threads.add(new LoaderThread(this.benchmark) {
                 @Override
                 public void load(Connection conn) throws SQLException {

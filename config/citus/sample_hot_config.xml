@@ -18,7 +18,7 @@
     <!-- Optional: Number of hot keys per partition -->
     <hot>0</hot>
 
-    <numRegions>3</numRegions>
+    <numregions>3</numregions>
     <region>1</region>
     <!-- Percentage of multiregion transactions -->
     <mrpct>100</mrpct>

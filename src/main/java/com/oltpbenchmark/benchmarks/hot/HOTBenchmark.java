@@ -43,15 +43,19 @@ public class HOTBenchmark extends BenchmarkModule {
     protected final int numRegions;
     protected final int mrpct;
     protected final int hot;
+    protected final int loadFrom;
+    protected final int loadTo;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
 
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
         int region = 0;
-        int numRegions = -1;
+        int numRegions = 1;
         int mrpct = 0;
         int hot = 0;
+        int loadFrom = 0;
+        int loadTo = -1;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
         if (xmlConfig != null) {
@@ -72,8 +76,16 @@ public class HOTBenchmark extends BenchmarkModule {
                 mrpct = xmlConfig.getInt("mrpct");
             }
 
-            if (xmlConfig.containsKey("numRegions")) {
-                numRegions = xmlConfig.getInt("numRegions");
+            if (xmlConfig.containsKey("numregions")) {
+                numRegions = xmlConfig.getInt("numregions");
+            }
+
+            if (xmlConfig.containsKey("loadfrom")) {
+                loadFrom = xmlConfig.getInt("loadfrom");
+            }
+
+            if (xmlConfig.containsKey("loadto")) {
+                loadTo = xmlConfig.getInt("loadto");
             }
         }
 
@@ -85,6 +97,8 @@ public class HOTBenchmark extends BenchmarkModule {
         this.region = region;
         this.mrpct = mrpct;
         this.hot = hot;
+        this.loadFrom = loadFrom;
+        this.loadTo = loadTo;
     }
 
     @Override

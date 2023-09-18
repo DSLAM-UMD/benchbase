@@ -4,7 +4,7 @@
     <!-- Connection details -->
     <type>POSTGRES</type>
     <driver>org.postgresql.Driver</driver>
-    <url>jdbc:postgresql://localhost:55433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
+    <url>jdbc:postgresql://localhost:55432/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
     <username>cloud_admin</username>
     <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
@@ -15,12 +15,22 @@
     
     <!-- Optional: Override the field size for each column in USERTABLE -->
     <fieldSize>8</fieldSize>
-    <!-- Optional: Number of hot keys per partition -->
-    <hot>0</hot>
 
+    <!-- If not specified, load from 0 -->
+    <!-- <loadfrom>0</loadfrom> -->
+    <!-- If not specified, load to the maximum number of rows based on the scale factor -->
+    <!-- <loadto>30000</loadto> -->
+
+    <numregions>3</numregions>
+
+    <!-- Current region -->
     <region>0</region>
+
     <!-- Percentage of multiregion transactions -->
     <mrpct>0</mrpct>
+
+    <!-- Number of hot keys per partition -->
+    <hot>0</hot>
 
     <!-- The workload -->
     <terminals>1</terminals>
