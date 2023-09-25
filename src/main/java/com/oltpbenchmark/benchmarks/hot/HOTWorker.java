@@ -65,8 +65,10 @@ class HOTWorker extends Worker<HOTBenchmark> {
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
         // everytime we want to execute a txn. This is important to do on
         // a client machine with not a lot of cores.
-        // We don't use ReadModifyWrite.class because it is not specified in the benchmark
-        // config file. Any of the ReadModifyWriteX classes can be used though and they are
+        // We don't use ReadModifyWrite.class because it is not specified in the
+        // benchmark
+        // config file. Any of the ReadModifyWriteX classes can be used though and they
+        // are
         // all the same.
         this.procReadModifyWrite = this.getProcedure(ReadModifyWrite1.class);
     }
@@ -90,6 +92,12 @@ class HOTWorker extends Worker<HOTBenchmark> {
     }
 
     private void readModifyWrite(Connection conn, int numPartitions) throws SQLException {
+        if (numPartitions > this.otherPartitions.size() + 1) {
+            throw new IllegalArgumentException(String.format(
+                    "Number of accessed partitions (%d) cannot be greater than the number of available partitions (%d)",
+                    numPartitions, this.otherPartitions.size() + 1));
+        }
+
         // Select the partitions that the txn will accept. The home partition is always
         // included. The other partitions are chosen randomly without replacement
         Partition[] partitions = new Partition[numPartitions];
