@@ -21,7 +21,7 @@ import com.oltpbenchmark.WorkloadConfiguration;
 import com.oltpbenchmark.api.BenchmarkModule;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
-import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWrite;
+import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWrite1;
 
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
@@ -41,10 +41,10 @@ public class HOTBenchmark extends BenchmarkModule {
     protected final int fieldSize;
     protected final int region;
     protected final int numRegions;
-    protected final int mrpct;
     protected final int hot;
     protected final int loadFrom;
     protected final int loadTo;
+    protected final int keysPerTxn;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
@@ -52,10 +52,10 @@ public class HOTBenchmark extends BenchmarkModule {
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
         int region = 0;
         int numRegions = 1;
-        int mrpct = 0;
         int hot = 0;
         int loadFrom = 0;
         int loadTo = -1;
+        int keysPerTxn = 8;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
         if (xmlConfig != null) {
@@ -72,10 +72,6 @@ public class HOTBenchmark extends BenchmarkModule {
                 hot = xmlConfig.getInt("hot");
             }
 
-            if (xmlConfig.containsKey("mrpct")) {
-                mrpct = xmlConfig.getInt("mrpct");
-            }
-
             if (xmlConfig.containsKey("numregions")) {
                 numRegions = xmlConfig.getInt("numregions");
             }
@@ -87,6 +83,10 @@ public class HOTBenchmark extends BenchmarkModule {
             if (xmlConfig.containsKey("loadto")) {
                 loadTo = xmlConfig.getInt("loadto");
             }
+
+            if (xmlConfig.containsKey("keyspertxn")) {
+                keysPerTxn = xmlConfig.getInt("keyspertxn");
+            }
         }
 
         this.fieldSize = fieldSize;
@@ -95,10 +95,10 @@ public class HOTBenchmark extends BenchmarkModule {
         }
         this.numRegions = numRegions;
         this.region = region;
-        this.mrpct = mrpct;
         this.hot = hot;
         this.loadFrom = loadFrom;
         this.loadTo = loadTo;
+        this.keysPerTxn = keysPerTxn;
     }
 
     @Override
@@ -122,6 +122,6 @@ public class HOTBenchmark extends BenchmarkModule {
 
     @Override
     protected Package getProcedurePackageImpl() {
-        return ReadModifyWrite.class.getPackage();
+        return ReadModifyWrite1.class.getPackage();
     }
 }

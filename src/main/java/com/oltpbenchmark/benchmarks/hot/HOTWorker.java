@@ -39,17 +39,15 @@ import java.util.Optional;
  * @author pavlo
  */
 class HOTWorker extends Worker<HOTBenchmark> {
-
     private final DatabaseType dbType;
     private final char[] data;
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
     private final String[] results = new String[HOTConstants.NUM_FIELDS];
     private final Partition homePartition;
     private final List<Partition> otherPartitions;
-    private final int mrpct;
+    private final int keysPerTxn;
 
     private final ReadModifyWrite procReadModifyWrite;
-    private final RMWLocalRORemote procRMWLocalRORemote;
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
         super(benchmarkModule, id);
@@ -62,13 +60,15 @@ class HOTWorker extends Worker<HOTBenchmark> {
                 this.otherPartitions.add(p);
             }
         }
-        this.mrpct = benchmarkModule.mrpct;
+        this.keysPerTxn = benchmarkModule.keysPerTxn;
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
         // everytime we want to execute a txn. This is important to do on
-        // a client machine with not a lot of cores
-        this.procReadModifyWrite = this.getProcedure(ReadModifyWrite.class);
-        this.procRMWLocalRORemote = this.getProcedure(RMWLocalRORemote.class);
+        // a client machine with not a lot of cores.
+        // We don't use ReadModifyWrite.class because it is not specified in the benchmark
+        // config file. Any of the ReadModifyWriteX classes can be used though and they are
+        // all the same.
+        this.procReadModifyWrite = this.getProcedure(ReadModifyWrite1.class);
     }
 
     @Override
@@ -76,27 +76,46 @@ class HOTWorker extends Worker<HOTBenchmark> {
             throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
-        if (procClass.equals(ReadModifyWrite.class)) {
-            readModifyWrite(conn);
-        } else if (procClass.equals(RMWLocalRORemote.class)) {
-            rmwLocalRORemote(conn);
+        if (procClass.equals(ReadModifyWrite1.class)) {
+            readModifyWrite(conn, 1);
+        } else if (procClass.equals(ReadModifyWrite2.class)) {
+            readModifyWrite(conn, 2);
+        } else if (procClass.equals(ReadModifyWrite3.class)) {
+            readModifyWrite(conn, 3);
+        } else if (procClass.equals(ReadModifyWrite4.class)) {
+            readModifyWrite(conn, 4);
         }
 
         return (TransactionStatus.SUCCESS);
     }
 
-    private void readModifyWrite(Connection conn) throws SQLException {
-        Key[] keys = new Key[4];
-        keys[0] = new Key(this.homePartition.nextHot(rng()), homePartition.getId());
-        keys[1] = new Key(this.homePartition.nextCold(rng()), homePartition.getId());
-
-        Partition partition = this.homePartition;
-        if (rng().nextInt(100) + 1 <= this.mrpct) {
-            int partitionIndex = rng().nextInt(this.otherPartitions.size());
-            partition = this.otherPartitions.get(partitionIndex);
+    private void readModifyWrite(Connection conn, int numPartitions) throws SQLException {
+        // Select the partitions that the txn will accept. The home partition is always
+        // included. The other partitions are chosen randomly without replacement
+        Partition[] partitions = new Partition[numPartitions];
+        partitions[0] = this.homePartition;
+        int[] chosenOtherPartitions = rng()
+                .ints(0, this.otherPartitions.size())
+                .distinct()
+                .limit(numPartitions - 1)
+                .toArray();
+        for (int i = 1; i < numPartitions; i++) {
+            partitions[i] = this.otherPartitions.get(chosenOtherPartitions[i - 1]);
         }
-        keys[2] = new Key(partition.nextHot(rng()), partition.getId());
-        keys[3] = new Key(partition.nextCold(rng()), partition.getId());
+
+        // Select the keys from the partitions
+        Key[] keys = new Key[this.keysPerTxn];
+        int keyIndex = 0;
+        for (int i = 0; i < partitions.length; i++) {
+            // Make sure that the keys are evenly distributed across the partitions
+            int numKeys = this.keysPerTxn / partitions.length + (i < this.keysPerTxn % partitions.length ? 1 : 0);
+            // The first key is always a hot key
+            keys[keyIndex++] = new Key(partitions[i].nextHot(rng()), partitions[i].getId());
+            // The rest are cold keys
+            for (int j = 1; j < numKeys; j++) {
+                keys[keyIndex++] = new Key(partitions[i].nextCold(rng()), partitions[i].getId());
+            }
+        }
 
         this.buildParameters();
 
@@ -111,24 +130,6 @@ class HOTWorker extends Worker<HOTBenchmark> {
                 this.procReadModifyWrite.run(conn, Optional.empty(), keys, this.params, this.results);
                 break;
         }
-    }
-
-    private void rmwLocalRORemote(Connection conn) throws SQLException {
-        int[] local_keys = new int[2];
-        local_keys[0] = this.homePartition.nextHot(rng());
-        local_keys[1] = this.homePartition.nextCold(rng());
-
-        int[] remote_keys = new int[2];
-        Partition partition = this.homePartition;
-        if (rng().nextInt(100) + 1 <= this.mrpct) {
-            int partitionIndex = rng().nextInt(this.otherPartitions.size());
-            partition = this.otherPartitions.get(partitionIndex);
-        }
-        remote_keys[0] = partition.nextHot(rng());
-        remote_keys[1] = partition.nextCold(rng());
-
-        this.buildParameters();
-        this.procRMWLocalRORemote.run(conn, local_keys, remote_keys, this.params, this.results);
     }
 
     private void buildParameters() {

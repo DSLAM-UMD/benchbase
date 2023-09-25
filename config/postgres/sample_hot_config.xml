@@ -26,11 +26,11 @@
     <!-- Current region -->
     <region>0</region>
 
-    <!-- Percentage of multiregion transactions -->
-    <mrpct>0</mrpct>
-
     <!-- Number of hot keys per partition -->
     <hot>0</hot>
+
+    <!-- Number of keys per transaction -->
+    <keyspertxn>8</keyspertxn>
 
     <!-- The workload -->
     <terminals>1</terminals>
@@ -38,17 +38,23 @@
         <work>
             <time>10</time>
             <rate>10000</rate>
-            <weights>100,0</weights>
+            <weights>100,0,0,0</weights>
         </work>
     </works>
 
     <!-- HOT Procedures declaration -->
     <transactiontypes>
         <transactiontype>
-            <name>ReadModifyWrite</name>
+            <name>ReadModifyWrite1</name>
         </transactiontype>
         <transactiontype>
-            <name>RMWLocalRORemote</name>
+            <name>ReadModifyWrite2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>ReadModifyWrite3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>ReadModifyWrite4</name>
         </transactiontype>
     </transactiontypes>
 </parameters>
