@@ -1,5 +1,6 @@
 package com.oltpbenchmark.benchmarks.hot;
 
+import java.util.Optional;
 import java.util.Random;
 
 public class Partition {
@@ -7,16 +8,28 @@ public class Partition {
     private int from;
     private int to;
     private int hot;
+    private Optional<Class<?>> idType;
 
-    public Partition(String id, int from, int to, int hot) {
+    public Partition(String id, int from, int to, int hot, Optional<Class<?>> idType) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
+        this.idType = idType;
     }
 
-    public String getId() {
+    public Optional<Class<?>> getIdType() {
+        return idType;
+    }
+
+    public String getStringId() {
+        assert idType.isPresent() && idType.get() == String.class;
         return id;
+    }
+
+    public int getIntId() {
+        assert idType.isPresent() && idType.get() == Integer.class;
+        return Integer.parseInt(id);
     }
 
     public int nextHot(Random rng) {

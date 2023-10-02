@@ -42,23 +42,21 @@ public class ReadModifyWrite extends Procedure {
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
                     "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and GEO_PARTITION=?");
 
-    // FIXME: The value in ysqb is a byteiterator
-    public void run(Connection conn, Optional<Class<?>> geoPartitionType, Key[] keys, String[] fields, String[] results)
+    public void run(Connection conn, Key[] keys, String[] fields, String[] results)
             throws SQLException {
-        SQLStmt chosenSelectStmt = geoPartitionType.isPresent() ? selectStmtWithGeoPartition : selectStmt;
-        SQLStmt chosenUpdateAllStmt = geoPartitionType.isPresent() ? updateAllStmtWithGeoPartition : updateAllStmt;
-
         for (Key k : keys) {
+            Optional<Class<?>> partitionIdType = k.partition.getIdType();
+
+            SQLStmt chosenSelectStmt = partitionIdType.isPresent() ? selectStmtWithGeoPartition : selectStmt;
             try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenSelectStmt)) {
                 stmt.setInt(1, k.name);
-                if (geoPartitionType.isPresent()) {
-                    if (geoPartitionType.get().equals(Integer.class)) {
-                        stmt.setInt(2, Integer.parseInt(k.partition));
-                    } else if (geoPartitionType.get().equals(String.class)) {
-                        stmt.setString(2, k.partition);
+                if (partitionIdType.isPresent()) {
+                    if (partitionIdType.get().equals(Integer.class)) {
+                        stmt.setInt(2, k.partition.getIntId());
+                    } else if (partitionIdType.get().equals(String.class)) {
+                        stmt.setString(2, k.partition.getStringId());
                     }
                 }
-
                 try (ResultSet r = stmt.executeQuery()) {
                     while (r.next()) {
                         for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
@@ -66,27 +64,25 @@ public class ReadModifyWrite extends Procedure {
                         }
                     }
                 }
-
             }
 
-            // Update that mofo
+            SQLStmt chosenUpdateAllStmt = partitionIdType.isPresent() ? updateAllStmtWithGeoPartition
+                    : updateAllStmt;
             try (PreparedStatement stmt = this.getPreparedStatement(conn, chosenUpdateAllStmt)) {
                 stmt.setInt(11, k.name);
-                if (geoPartitionType.isPresent()) {
-                    if (geoPartitionType.get().equals(Integer.class)) {
-                        stmt.setInt(12, Integer.parseInt(k.partition));
-                    } else if (geoPartitionType.get().equals(String.class)) {
-                        stmt.setString(12, k.partition);
+                if (partitionIdType.isPresent()) {
+                    if (partitionIdType.get().equals(Integer.class)) {
+                        stmt.setInt(12, k.partition.getIntId());
+                    } else if (partitionIdType.get().equals(String.class)) {
+                        stmt.setString(12, k.partition.getStringId());
                     }
                 }
-
                 for (int i = 0; i < fields.length; i++) {
                     stmt.setString(i + 1, fields[i]);
                 }
                 stmt.executeUpdate();
             }
         }
-
     }
 
 }

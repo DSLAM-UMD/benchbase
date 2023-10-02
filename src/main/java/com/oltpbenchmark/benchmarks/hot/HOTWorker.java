@@ -22,7 +22,6 @@ import com.oltpbenchmark.api.Procedure.UserAbortException;
 import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.hot.procedures.*;
-import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.TextGenerator;
 
@@ -30,7 +29,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * HOTWorker Implementation
@@ -39,7 +37,6 @@ import java.util.Optional;
  * @author pavlo
  */
 class HOTWorker extends Worker<HOTBenchmark> {
-    private final DatabaseType dbType;
     private final char[] data;
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
     private final String[] results = new String[HOTConstants.NUM_FIELDS];
@@ -51,7 +48,6 @@ class HOTWorker extends Worker<HOTBenchmark> {
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
         super(benchmarkModule, id);
-        this.dbType = benchmarkModule.getWorkloadConfiguration().getDatabaseType();
         this.data = new char[benchmarkModule.fieldSize];
         this.homePartition = partitions.get(benchmarkModule.region);
         this.otherPartitions = new ArrayList<>();
@@ -118,26 +114,16 @@ class HOTWorker extends Worker<HOTBenchmark> {
             // Make sure that the keys are evenly distributed across the partitions
             int numKeys = this.keysPerTxn / partitions.length + (i < this.keysPerTxn % partitions.length ? 1 : 0);
             // The first key is always a hot key
-            keys[keyIndex++] = new Key(partitions[i].nextHot(rng()), partitions[i].getId());
+            keys[keyIndex++] = new Key(partitions[i].nextHot(rng()), partitions[i]);
             // The rest are cold keys
             for (int j = 1; j < numKeys; j++) {
-                keys[keyIndex++] = new Key(partitions[i].nextCold(rng()), partitions[i].getId());
+                keys[keyIndex++] = new Key(partitions[i].nextCold(rng()), partitions[i]);
             }
         }
 
         this.buildParameters();
 
-        switch (this.dbType) {
-            case CITUS:
-                this.procReadModifyWrite.run(conn, Optional.of(Integer.class), keys, this.params, this.results);
-                break;
-            case YUGABYTEDB:
-                this.procReadModifyWrite.run(conn, Optional.of(String.class), keys, this.params, this.results);
-                break;
-            default:
-                this.procReadModifyWrite.run(conn, Optional.empty(), keys, this.params, this.results);
-                break;
-        }
+        this.procReadModifyWrite.run(conn, keys, this.params, this.results);
     }
 
     private void buildParameters() {

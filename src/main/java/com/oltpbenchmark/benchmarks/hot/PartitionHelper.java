@@ -68,6 +68,7 @@ public class PartitionHelper {
   public List<Partition> getPartitions(String tableName) throws SQLException {
     DatabaseType dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
     String partitionRangesQuery;
+    Optional<Class<?>> partitionIdType;
     switch (dbType) {
       case POSTGRES:
         boolean hasRegionColumn = false;
@@ -97,8 +98,17 @@ public class PartitionHelper {
               from expressions
               order by region, from_val;
             """, tableName, hasRegionColumn ? "c.relregion" : "0");
+        partitionIdType = Optional.empty();
         break;
       case CITUS:
+        partitionRangesQuery = String.format("""
+                select geo_partition, min(ycsb_key) as from_val, max(ycsb_key) as to_val
+                from %s
+                group by geo_partition
+                order by from_val;
+            """, tableName);
+        partitionIdType = Optional.of(Integer.class);
+        break;
       case YUGABYTEDB:
         partitionRangesQuery = String.format("""
                 select geo_partition, min(ycsb_key) as from_val, max(ycsb_key) as to_val
@@ -106,6 +116,7 @@ public class PartitionHelper {
                 group by geo_partition
                 order by from_val;
             """, tableName);
+        partitionIdType = Optional.of(String.class);
         break;
       default:
         throw new RuntimeException("Unsupported database type: " + dbType);
@@ -115,8 +126,10 @@ public class PartitionHelper {
         Statement stmt = metaConn.createStatement();
         ResultSet res = stmt.executeQuery(partitionRangesQuery)) {
       while (res.next()) {
-        partitions.add(new Partition(res.getString(1), res.getInt(2), res.getInt(3), benchmark.hot));
-        LOG.info(partitions.get(partitions.size() - 1).toString());
+        Partition partition = new Partition(res.getString(1), res.getInt(2), res.getInt(3), benchmark.hot,
+            partitionIdType);
+        partitions.add(partition);
+        LOG.info(partition.toString());
       }
     }
 
