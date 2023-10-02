@@ -21,7 +21,7 @@ import com.oltpbenchmark.WorkloadConfiguration;
 import com.oltpbenchmark.api.BenchmarkModule;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
-import com.oltpbenchmark.benchmarks.hot.procedures.ReadModifyWrite1;
+import com.oltpbenchmark.benchmarks.hot.procedures.WorkloadA;
 
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
@@ -122,6 +122,6 @@ public class HOTBenchmark extends BenchmarkModule {
 
     @Override
     protected Package getProcedurePackageImpl() {
-        return ReadModifyWrite1.class.getPackage();
+        return WorkloadA.class.getPackage();
     }
 }

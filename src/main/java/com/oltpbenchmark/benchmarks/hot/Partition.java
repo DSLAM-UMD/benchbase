@@ -22,6 +22,10 @@ public class Partition {
         return idType;
     }
 
+    public String getId() {
+        return id;
+    }
+
     public String getStringId() {
         assert idType.isPresent() && idType.get() == String.class;
         return id;

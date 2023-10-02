@@ -38,23 +38,83 @@
         <work>
             <time>10</time>
             <rate>10000</rate>
-            <weights>100,0,0,0</weights>
+            <weights>1,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0</weights>
         </work>
     </works>
 
     <!-- HOT Procedures declaration -->
     <transactiontypes>
         <transactiontype>
-            <name>ReadModifyWrite1</name>
+            <name>WorkloadA1</name>
         </transactiontype>
         <transactiontype>
-            <name>ReadModifyWrite2</name>
+            <name>WorkloadA2</name>
         </transactiontype>
         <transactiontype>
-            <name>ReadModifyWrite3</name>
+            <name>WorkloadA3</name>
         </transactiontype>
         <transactiontype>
-            <name>ReadModifyWrite4</name>
+            <name>WorkloadA4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadA5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadA6</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB1</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadB6</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC1</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadC6</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF1</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadF6</name>
         </transactiontype>
     </transactiontypes>
 </parameters>

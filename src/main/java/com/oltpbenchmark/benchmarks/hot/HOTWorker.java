@@ -44,7 +44,46 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final List<Partition> otherPartitions;
     private final int keysPerTxn;
 
-    private final ReadModifyWrite procReadModifyWrite;
+    private final WorkloadA workloadA;
+    private final static Class<?>[] workloadAs = new Class[] {
+            WorkloadA.class,
+            WorkloadA1.class,
+            WorkloadA2.class,
+            WorkloadA3.class,
+            WorkloadA4.class,
+            WorkloadA5.class,
+            WorkloadA6.class
+    };
+    private final WorkloadB workloadB;
+    private final static Class<?>[] workloadBs = new Class[] {
+            WorkloadB.class,
+            WorkloadB1.class,
+            WorkloadB2.class,
+            WorkloadB3.class,
+            WorkloadB4.class,
+            WorkloadB5.class,
+            WorkloadB6.class
+    };
+    private final WorkloadC workloadC;
+    private final static Class<?>[] workloadCs = new Class[] {
+            WorkloadC.class,
+            WorkloadC1.class,
+            WorkloadC2.class,
+            WorkloadC3.class,
+            WorkloadC4.class,
+            WorkloadC5.class,
+            WorkloadC6.class
+    };
+    private final WorkloadF workloadF;
+    private final static Class<?>[] workloadFs = new Class[] {
+            WorkloadF.class,
+            WorkloadF1.class,
+            WorkloadF2.class,
+            WorkloadF3.class,
+            WorkloadF4.class,
+            WorkloadF5.class,
+            WorkloadF6.class
+    };
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
         super(benchmarkModule, id);
@@ -66,7 +105,10 @@ class HOTWorker extends Worker<HOTBenchmark> {
         // config file. Any of the ReadModifyWriteX classes can be used though and they
         // are
         // all the same.
-        this.procReadModifyWrite = this.getProcedure(ReadModifyWrite1.class);
+        this.workloadA = this.getProcedure(WorkloadA1.class);
+        this.workloadB = this.getProcedure(WorkloadB1.class);
+        this.workloadC = this.getProcedure(WorkloadC1.class);
+        this.workloadF = this.getProcedure(WorkloadF1.class);
     }
 
     @Override
@@ -74,20 +116,38 @@ class HOTWorker extends Worker<HOTBenchmark> {
             throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
-        if (procClass.equals(ReadModifyWrite1.class)) {
-            readModifyWrite(conn, 1);
-        } else if (procClass.equals(ReadModifyWrite2.class)) {
-            readModifyWrite(conn, 2);
-        } else if (procClass.equals(ReadModifyWrite3.class)) {
-            readModifyWrite(conn, 3);
-        } else if (procClass.equals(ReadModifyWrite4.class)) {
-            readModifyWrite(conn, 4);
+        // Workload A
+        for (int numPartitions = 1; numPartitions < workloadAs.length; numPartitions++) {
+            if (procClass.equals(workloadAs[numPartitions])) {
+                this.buildParameters();
+                this.workloadA.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+            }
         }
-
+        // Workload B
+        for (int numPartitions = 1; numPartitions < workloadBs.length; numPartitions++) {
+            if (procClass.equals(workloadBs[numPartitions])) {
+                this.buildParameters();
+                this.workloadB.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+            }
+        }
+        // Workload C
+        for (int numPartitions = 1; numPartitions < workloadCs.length; numPartitions++) {
+            if (procClass.equals(workloadCs[numPartitions])) {
+                this.buildParameters();
+                this.workloadC.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+            }
+        }
+        // Workload F
+        for (int numPartitions = 1; numPartitions < workloadFs.length; numPartitions++) {
+            if (procClass.equals(workloadFs[numPartitions])) {
+                this.buildParameters();
+                this.workloadF.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+            }
+        }
         return (TransactionStatus.SUCCESS);
     }
 
-    private void readModifyWrite(Connection conn, int numPartitions) throws SQLException {
+    private Key[] selectKeys(int numPartitions) {
         if (numPartitions > this.otherPartitions.size() + 1) {
             throw new IllegalArgumentException(String.format(
                     "Number of accessed partitions (%d) cannot be greater than the number of available partitions (%d)",
@@ -121,9 +181,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
             }
         }
 
-        this.buildParameters();
-
-        this.procReadModifyWrite.run(conn, keys, this.params, this.results);
+        return keys;
     }
 
     private void buildParameters() {

@@ -17,4 +17,5 @@
 
 package com.oltpbenchmark.benchmarks.hot.procedures;
 
-public class ReadModifyWrite4 extends ReadModifyWrite {}
+public class WorkloadA4 extends WorkloadA {
+}

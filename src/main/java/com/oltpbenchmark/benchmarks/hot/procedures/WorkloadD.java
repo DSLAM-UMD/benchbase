@@ -17,4 +17,22 @@
 
 package com.oltpbenchmark.benchmarks.hot.procedures;
 
-public class ReadModifyWrite3 extends ReadModifyWrite {}
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Random;
+
+public class WorkloadD extends BasicProcedures {
+    public void run(Connection conn, Key[] keys, String[] vals, String[] results, Random rng)
+            throws SQLException {
+        for (Key k : keys) {
+            if (rng.nextInt(100) < 95) {
+                read(conn, k, results);
+                System.out.printf("%s(R) ", k.name);
+            } else {
+                insert(conn, k, vals);
+                System.out.printf("%s(I) ", k.name);
+            }
+        }
+        System.out.println();
+    }
+}
