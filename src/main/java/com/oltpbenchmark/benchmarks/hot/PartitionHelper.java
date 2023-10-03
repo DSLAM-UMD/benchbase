@@ -6,186 +6,161 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.oltpbenchmark.WorkloadConfiguration;
+import com.oltpbenchmark.benchmarks.ycsb.YCSBConstants;
 import com.oltpbenchmark.types.DatabaseType;
 
 public class PartitionHelper {
-  private static final Logger LOG = LoggerFactory.getLogger(PartitionHelper.class);
+    private HOTBenchmark benchmark;
+    private int numRecords;
+    private List<Partition> partitions;
 
-  private HOTBenchmark benchmark;
-  private int partitionSize;
+    public PartitionHelper(HOTBenchmark benchmark) throws SQLException {
+        WorkloadConfiguration workloadConf = benchmark.getWorkloadConfiguration();
+        this.benchmark = benchmark;
+        this.numRecords = (int) Math
+                .round(YCSBConstants.RECORD_COUNT * workloadConf.getScaleFactor());
+        this.partitions = new ArrayList<>();
 
-  private Optional<List<Integer>> citusPartitions;
-  private Optional<List<String>> yugabytePartitions;
-
-  public PartitionHelper(HOTBenchmark benchmark) {
-    double scaleFactor = benchmark.getWorkloadConfiguration().getScaleFactor();
-    int numRecords = (int) Math.round(HOTConstants.RECORD_COUNT * scaleFactor);
-
-    this.benchmark = benchmark;
-    this.partitionSize = numRecords / benchmark.numRegions;
-
-    this.citusPartitions = Optional.empty();
-    this.yugabytePartitions = Optional.empty();
-  }
-
-  public void setPartition(PreparedStatement stmt, int row) {
-    try {
-      DatabaseType dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
-      int partition;
-      switch (dbType) {
-        case CITUS:
-          if (this.citusPartitions.isEmpty()) {
-            computeCitusPartitions();
-            LOG.info("Citus partitions: {}", this.citusPartitions.get());
-          }
-          partition = row / this.partitionSize;
-          stmt.setInt(12, citusPartitions.get().get(partition));
-          break;
-        case YUGABYTEDB:
-          if (this.yugabytePartitions.isEmpty()) {
-            computeYugabytePartitions();
-            LOG.info("YugabyteDB partitions: {}", this.yugabytePartitions.get());
-          }
-          partition = row / this.partitionSize;
-          stmt.setString(12, yugabytePartitions.get().get(partition));
-          break;
-        default:
-          break;
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
+        try (Connection conn = this.benchmark.makeConnection()) {
+            DatabaseType dbType = workloadConf.getDatabaseType();
+            switch (dbType) {
+                case POSTGRES:
+                    computePostgresPartitions(conn);
+                    break;
+                case CITUS:
+                    computeCitusPartitions(conn);
+                    break;
+                case YUGABYTEDB:
+                    computeYugabytePartitions(conn);
+                    break;
+                default:
+                    throw new RuntimeException("Unsupported database type: " + dbType);
+            }
+            finalizePartitions(conn);
+        }
     }
-  }
 
-  public List<Partition> getPartitions(String tableName) throws SQLException {
-    DatabaseType dbType = benchmark.getWorkloadConfiguration().getDatabaseType();
-    String partitionRangesQuery;
-    Optional<Class<?>> partitionIdType;
-    switch (dbType) {
-      case POSTGRES:
+    public int partitionCount() {
+        return partitions.size();
+    }
+
+    public Partition getPartitionForRegion(int region) {
+        if (region == 0) {
+            throw new IllegalArgumentException("No partition available for region 0");
+        }
+        return partitions.get(region - 1);
+    }
+
+    public Iterable<Partition> getPartitions() {
+        return partitions;
+    }
+
+    private void computePostgresPartitions(Connection conn) throws SQLException {
         boolean hasRegionColumn = false;
-        String checkRegionColumnQuery = String.format("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name='pg_class' and column_name='relregion';
-            """);
-
-        try (Connection metaConn = benchmark.makeConnection();
-            Statement stmt = metaConn.createStatement();
-            ResultSet res = stmt.executeQuery(checkRegionColumnQuery)) {
-          hasRegionColumn = res.next();
+        String checkRegionColumn = """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name='pg_class' and column_name='relregion';
+                """;
+        try (Statement stmt = conn.createStatement();
+                ResultSet res = stmt.executeQuery(checkRegionColumn)) {
+            hasRegionColumn = res.next();
         }
 
-        partitionRangesQuery = String.format("""
-              with partitions as (select i.inhrelid as partoid
-                                  from pg_inherits i
-                                  join pg_class cl on i.inhparent = cl.oid
-                                  where lower(cl.relname) = lower('%s')),
-                  expressions as (select %s as region
-                                      , pg_get_expr(c.relpartbound, c.oid, true) as expression
-                                  from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-              select region
-                  , (regexp_match(expression, 'FOR VALUES FROM \\((.+)\\) TO \\(.+\\)'))[1] as from_val
-                  , (regexp_match(expression, 'FOR VALUES FROM \\(.+\\) TO \\((.+)\\)'))[1] as to_val
-              from expressions
-              order by region, from_val;
-            """, tableName, hasRegionColumn ? "c.relregion" : "0");
-        partitionIdType = Optional.empty();
-        break;
-      case CITUS:
-        partitionRangesQuery = String.format("""
-                select geo_partition, min(ycsb_key) as from_val, max(ycsb_key) as to_val
-                from %s
-                group by geo_partition
-                order by from_val;
-            """, tableName);
-        partitionIdType = Optional.of(Integer.class);
-        break;
-      case YUGABYTEDB:
-        partitionRangesQuery = String.format("""
-                select geo_partition, min(ycsb_key) as from_val, max(ycsb_key) as to_val
-                from %s
-                group by geo_partition
-                order by from_val;
-            """, tableName);
-        partitionIdType = Optional.of(String.class);
-        break;
-      default:
-        throw new RuntimeException("Unsupported database type: " + dbType);
-    }
-    List<Partition> partitions = new ArrayList<Partition>();
-    try (Connection metaConn = benchmark.makeConnection();
-        Statement stmt = metaConn.createStatement();
-        ResultSet res = stmt.executeQuery(partitionRangesQuery)) {
-      while (res.next()) {
-        Partition partition = new Partition(res.getString(1), res.getInt(2), res.getInt(3), benchmark.hot,
-            partitionIdType);
-        partitions.add(partition);
-        LOG.info(partition.toString());
-      }
-    }
-
-    return partitions;
-  }
-
-  private void computeCitusPartitions() {
-    this.citusPartitions = Optional.of(new ArrayList<>());
-    String sql = String.format("""
-          with cand_shards as (
-              select
-                generate_series(0, 50) as num,
-                get_shard_id_for_distribution_column('usertable', generate_series(0, 50)) as shardid
-            )
-            select nodename, num
-            from pg_dist_shard_placement p
-            join cand_shards s
-            on p.shardid = s.shardid
-            order by num;
-        """);
-    try (Connection metaConn = benchmark.makeConnection();
-        Statement stmt = metaConn.createStatement();
-        ResultSet res = stmt.executeQuery(sql)) {
-      Set<String> nodes = new HashSet<>();
-      while (res.next()) {
-        String node = res.getString(1);
-        if (!nodes.contains(node)) {
-          nodes.add(node);
-          citusPartitions.get().add(res.getInt(2));
+        String getPartitionName = String.format("""
+                  with partitions as (select i.inhrelid as partoid
+                                      from pg_inherits i
+                                      join pg_class cl on i.inhparent = cl.oid
+                                      where lower(cl.relname) = '%s'),
+                      expressions as (select %s as region
+                                          , pg_get_expr(c.relpartbound, c.oid, true) as expression
+                                      from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
+                  select region
+                      , (regexp_match(expression, 'FOR VALUES IN \\((.+)\\)'))[1] as geo_partition
+                  from expressions
+                  order by region, geo_partition;
+                """, HOTConstants.TABLE_NAME, hasRegionColumn ? "c.relregion" : "0");
+        try (Statement stmt = conn.createStatement();
+                ResultSet res = stmt.executeQuery(getPartitionName)) {
+            while (res.next()) {
+                appendPartition(res.getObject(1));
+            }
         }
-      }
-    } catch (SQLException e) {
-      LOG.error(e.getMessage(), e);
     }
-  }
 
-  private void computeYugabytePartitions() {
-    this.yugabytePartitions = Optional.of(new ArrayList<>());
-    String sql = String.format("""
-          with partitions as (select i.inhrelid as partoid
-                              from pg_inherits i
-                              join pg_class cl on i.inhparent = cl.oid
-                              where cl.relname = 'usertable'),
-              expressions as (select pg_get_expr(c.relpartbound, c.oid, true) as expression
-                              from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-          select (regexp_match(expression, 'FOR VALUES IN \\(''(.+)''\\)'))[1] as region
-          from expressions;
-        """);
-    try (Connection metaConn = benchmark.makeConnection();
-        Statement stmt = metaConn.createStatement();
-        ResultSet res = stmt.executeQuery(sql)) {
-      while (res.next()) {
-        yugabytePartitions.get().add(res.getString(1));
-      }
-    } catch (SQLException e) {
-      LOG.error(e.getMessage(), e);
+    private void computeCitusPartitions(Connection conn) throws SQLException {
+        String sql = String.format("""
+                  with cand_shards as (
+                      select
+                        generate_series(0, 50) as num,
+                        get_shard_id_for_distribution_column('%s', generate_series(0, 50)) as shardid
+                    )
+                    select nodename, num
+                    from pg_dist_shard_placement p
+                    join cand_shards s
+                    on p.shardid = s.shardid
+                    order by num;
+                """, HOTConstants.TABLE_NAME);
+        try (Statement stmt = conn.createStatement();
+                ResultSet res = stmt.executeQuery(sql)) {
+            Set<String> nodes = new HashSet<>();
+            while (res.next()) {
+                String node = res.getString(1);
+                if (!nodes.contains(node)) {
+                    nodes.add(node);
+                    appendPartition(res.getObject(2));
+                }
+            }
+        }
     }
-  }
+
+    private void computeYugabytePartitions(Connection conn) throws SQLException {
+        String sql = String.format("""
+                  with partitions as (select i.inhrelid as partoid
+                                      from pg_inherits i
+                                      join pg_class cl on i.inhparent = cl.oid
+                                      where cl.relname = '%s'),
+                      expressions as (select pg_get_expr(c.relpartbound, c.oid, true) as expression
+                                      from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
+                  select (regexp_match(expression, 'FOR VALUES IN \\(''(.+)''\\)'))[1] as region
+                  from expressions;
+                """, HOTConstants.TABLE_NAME);
+        try (Statement stmt = conn.createStatement();
+                ResultSet res = stmt.executeQuery(sql)) {
+            while (res.next()) {
+                appendPartition(res.getObject(1));
+            }
+        }
+    }
+
+    private void appendPartition(Object id) {
+        this.partitions.add(new Partition(id, 0, this.numRecords, this.benchmark.hot));
+    }
+
+    private void finalizePartitions(Connection conn) throws SQLException {
+        String maxKeySql = """
+                SELECT MAX(ycsb_key)
+                FROM usertable
+                WHERE geo_partition = ?;
+                """;
+        try (PreparedStatement stmt = conn.prepareStatement(maxKeySql)) {
+            for (Partition p : this.partitions) {
+                stmt.setObject(1, p.getId());
+                try (ResultSet res = stmt.executeQuery()) {
+                    int maxKey = 0;
+                    while (res.next()) {
+                        maxKey = res.getInt(1);
+                    }
+                    p.setInsertCounterStartFromMaxKey(this.partitions.size(), maxKey);
+                }
+            }
+        }
+        this.partitions = Collections.unmodifiableList(this.partitions);
+    }
 }

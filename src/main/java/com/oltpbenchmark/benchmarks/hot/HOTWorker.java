@@ -74,6 +74,26 @@ class HOTWorker extends Worker<HOTBenchmark> {
             WorkloadC5.class,
             WorkloadC6.class
     };
+    private final WorkloadD workloadD;
+    private final static Class<?>[] workloadDs = new Class[] {
+            WorkloadD.class,
+            WorkloadD1.class,
+            WorkloadD2.class,
+            WorkloadD3.class,
+            WorkloadD4.class,
+            WorkloadD5.class,
+            WorkloadD6.class
+    };
+    private final WorkloadE workloadE;
+    private final static Class<?>[] workloadEs = new Class[] {
+            WorkloadE.class,
+            WorkloadE1.class,
+            WorkloadE2.class,
+            WorkloadE3.class,
+            WorkloadE4.class,
+            WorkloadE5.class,
+            WorkloadE6.class
+    };
     private final WorkloadF workloadF;
     private final static Class<?>[] workloadFs = new Class[] {
             WorkloadF.class,
@@ -85,12 +105,12 @@ class HOTWorker extends Worker<HOTBenchmark> {
             WorkloadF6.class
     };
 
-    public HOTWorker(HOTBenchmark benchmarkModule, int id, List<Partition> partitions) {
+    public HOTWorker(HOTBenchmark benchmarkModule, int id) {
         super(benchmarkModule, id);
         this.data = new char[benchmarkModule.fieldSize];
-        this.homePartition = partitions.get(benchmarkModule.region);
+        this.homePartition = benchmarkModule.partitionHelper.getPartitionForRegion(benchmarkModule.region);
         this.otherPartitions = new ArrayList<>();
-        for (Partition p : partitions) {
+        for (Partition p : benchmarkModule.partitionHelper.getPartitions()) {
             if (p != this.homePartition) {
                 this.otherPartitions.add(p);
             }
@@ -108,6 +128,8 @@ class HOTWorker extends Worker<HOTBenchmark> {
         this.workloadA = this.getProcedure(WorkloadA1.class);
         this.workloadB = this.getProcedure(WorkloadB1.class);
         this.workloadC = this.getProcedure(WorkloadC1.class);
+        this.workloadD = this.getProcedure(WorkloadD1.class);
+        this.workloadE = this.getProcedure(WorkloadE1.class);
         this.workloadF = this.getProcedure(WorkloadF1.class);
     }
 
@@ -117,37 +139,61 @@ class HOTWorker extends Worker<HOTBenchmark> {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
         // Workload A
-        for (int numPartitions = 1; numPartitions < workloadAs.length; numPartitions++) {
-            if (procClass.equals(workloadAs[numPartitions])) {
+        for (int involvedPartitions = 1; involvedPartitions < workloadAs.length; involvedPartitions++) {
+            if (procClass.equals(workloadAs[involvedPartitions])) {
                 this.buildParameters();
-                this.workloadA.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+                this.workloadA.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
             }
         }
         // Workload B
-        for (int numPartitions = 1; numPartitions < workloadBs.length; numPartitions++) {
-            if (procClass.equals(workloadBs[numPartitions])) {
+        for (int involvedPartitions = 1; involvedPartitions < workloadBs.length; involvedPartitions++) {
+            if (procClass.equals(workloadBs[involvedPartitions])) {
                 this.buildParameters();
-                this.workloadB.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+                this.workloadB.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
             }
         }
         // Workload C
-        for (int numPartitions = 1; numPartitions < workloadCs.length; numPartitions++) {
-            if (procClass.equals(workloadCs[numPartitions])) {
+        for (int involvedPartitions = 1; involvedPartitions < workloadCs.length; involvedPartitions++) {
+            if (procClass.equals(workloadCs[involvedPartitions])) {
                 this.buildParameters();
-                this.workloadC.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+                this.workloadC.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
+            }
+        }
+        // Workload D
+        for (int involvedPartitions = 1; involvedPartitions < workloadDs.length; involvedPartitions++) {
+            if (procClass.equals(workloadDs[involvedPartitions])) {
+                this.buildParameters();
+                int numPartitions = this.otherPartitions.size() + 1;
+                int homePartition = this.getBenchmark().region - 1;
+                this.workloadD.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, true),
+                        this.params,
+                        this.results,
+                        rng());
+            }
+        }
+        // Workload E
+        for (int involvedPartitions = 1; involvedPartitions < workloadEs.length; involvedPartitions++) {
+            if (procClass.equals(workloadEs[involvedPartitions])) {
+                this.buildParameters();
+                int numPartitions = this.otherPartitions.size() + 1;
+                int homePartition = this.getBenchmark().region - 1;
+                this.workloadE.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, false),
+                        this.params,
+                        new ArrayList<>(),
+                        rng());
             }
         }
         // Workload F
-        for (int numPartitions = 1; numPartitions < workloadFs.length; numPartitions++) {
-            if (procClass.equals(workloadFs[numPartitions])) {
+        for (int involvedPartitions = 1; involvedPartitions < workloadFs.length; involvedPartitions++) {
+            if (procClass.equals(workloadFs[involvedPartitions])) {
                 this.buildParameters();
-                this.workloadF.run(conn, selectKeys(numPartitions), this.params, this.results, rng());
+                this.workloadF.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
             }
         }
         return (TransactionStatus.SUCCESS);
     }
 
-    private Key[] selectKeys(int numPartitions) {
+    private Key[] selectKeys(int numPartitions, boolean latest) {
         if (numPartitions > this.otherPartitions.size() + 1) {
             throw new IllegalArgumentException(String.format(
                     "Number of accessed partitions (%d) cannot be greater than the number of available partitions (%d)",
@@ -156,28 +202,34 @@ class HOTWorker extends Worker<HOTBenchmark> {
 
         // Select the partitions that the txn will accept. The home partition is always
         // included. The other partitions are chosen randomly without replacement
-        Partition[] partitions = new Partition[numPartitions];
-        partitions[0] = this.homePartition;
+        Partition[] chosenPartitions = new Partition[numPartitions];
+        chosenPartitions[0] = this.homePartition;
         int[] chosenOtherPartitions = rng()
                 .ints(0, this.otherPartitions.size())
                 .distinct()
                 .limit(numPartitions - 1)
                 .toArray();
         for (int i = 1; i < numPartitions; i++) {
-            partitions[i] = this.otherPartitions.get(chosenOtherPartitions[i - 1]);
+            chosenPartitions[i] = this.otherPartitions.get(chosenOtherPartitions[i - 1]);
         }
 
         // Select the keys from the partitions
         Key[] keys = new Key[this.keysPerTxn];
         int keyIndex = 0;
-        for (int i = 0; i < partitions.length; i++) {
+        for (int i = 0; i < chosenPartitions.length; i++) {
             // Make sure that the keys are evenly distributed across the partitions
-            int numKeys = this.keysPerTxn / partitions.length + (i < this.keysPerTxn % partitions.length ? 1 : 0);
-            // The first key is always a hot key
-            keys[keyIndex++] = new Key(partitions[i].nextHot(rng()), partitions[i]);
+            int numKeys = this.keysPerTxn / chosenPartitions.length
+                    + (i < this.keysPerTxn % chosenPartitions.length ? 1 : 0);
+            Partition chosenPartition = chosenPartitions[i];
+            // The first key is always a hot/latest key
+            if (latest) {
+                keys[keyIndex++] = new Key(chosenPartition.nextLatest(rng()), chosenPartition);
+            } else {
+                keys[keyIndex++] = new Key(chosenPartition.nextHot(rng()), chosenPartition);
+            }
             // The rest are cold keys
             for (int j = 1; j < numKeys; j++) {
-                keys[keyIndex++] = new Key(partitions[i].nextCold(rng()), partitions[i]);
+                keys[keyIndex++] = new Key(chosenPartition.nextCold(rng()), chosenPartition);
             }
         }
 

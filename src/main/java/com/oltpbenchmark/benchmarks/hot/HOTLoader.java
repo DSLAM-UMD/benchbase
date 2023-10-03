@@ -19,6 +19,7 @@ package com.oltpbenchmark.benchmarks.hot;
 
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.LoaderThread;
+import com.oltpbenchmark.benchmarks.ycsb.YCSBConstants;
 import com.oltpbenchmark.catalog.Table;
 import com.oltpbenchmark.util.SQLUtil;
 import com.oltpbenchmark.util.TextGenerator;
@@ -31,16 +32,10 @@ import java.util.List;
 
 class HOTLoader extends Loader<HOTBenchmark> {
     private final int numRecords;
-    private final PartitionHelper partitionHelper;
-    private final int loadFrom, loadTo;
 
-    public HOTLoader(HOTBenchmark benchmark, PartitionHelper partitionHelper) {
+    public HOTLoader(HOTBenchmark benchmark) {
         super(benchmark);
-        this.partitionHelper = partitionHelper;
-        this.loadFrom = benchmark.loadFrom;
-        this.loadTo = benchmark.loadTo == -1 ? 
-            (int) Math.round(HOTConstants.RECORD_COUNT * this.scaleFactor) : benchmark.loadTo;
-        this.numRecords = this.loadTo - this.loadFrom;
+        this.numRecords = (int) Math.round(YCSBConstants.RECORD_COUNT * this.scaleFactor);
         if (LOG.isDebugEnabled()) {
             LOG.debug("# of RECORDS:  {}", this.numRecords);
         }
@@ -49,25 +44,40 @@ class HOTLoader extends Loader<HOTBenchmark> {
     @Override
     public List<LoaderThread> createLoaderThreads() {
         List<LoaderThread> threads = new ArrayList<>();
-        int count = this.loadFrom;
-        while (count < this.loadTo) {
-            final int start = count;
-            final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.loadTo);
-            threads.add(new LoaderThread(this.benchmark) {
-                @Override
-                public void load(Connection conn) throws SQLException {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("HOTLoadThread[%d, %d]", start, stop));
+        PartitionHelper phelper = this.benchmark.partitionHelper;
+
+        int fromRegion, toRegion;
+        if (this.benchmark.region == 0) {
+            fromRegion = 1;
+            toRegion = phelper.partitionCount();
+        } else {
+            fromRegion = toRegion = this.benchmark.region;
+        }
+
+        for (int region = fromRegion; region <= toRegion; region++) {
+            final Partition partition = phelper.getPartitionForRegion(region);
+            LOG.info("Loading data [{}, {}) for region {}", 0, this.numRecords, region);
+
+            int count = partition.getFrom();
+            while (count < partition.getTo()) {
+                final int start = count;
+                final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.numRecords);
+                threads.add(new LoaderThread(this.benchmark) {
+                    @Override
+                    public void load(Connection conn) throws SQLException {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug(String.format("HOTLoadThread[%d, %d]", start, stop));
+                        }
+                        loadRecords(conn, partition.getId(), start, stop);
                     }
-                    loadRecords(conn, start, stop);
-                }
-            });
-            count = stop;
+                });
+                count = stop;
+            }
         }
         return (threads);
     }
 
-    private void loadRecords(Connection conn, int start, int stop) throws SQLException {
+    private void loadRecords(Connection conn, Object partitionId, int start, int stop) throws SQLException {
         Table catalog_tbl = benchmark.getCatalog().getTable("USERTABLE");
 
         String sql = SQLUtil.getInsertSQL(catalog_tbl, this.getDatabaseType());
@@ -80,7 +90,7 @@ class HOTLoader extends Loader<HOTBenchmark> {
                 for (int j = 0; j < HOTConstants.NUM_FIELDS; j++) {
                     stmt.setString(col++, TextGenerator.randomStr(rng(), benchmark.fieldSize));
                 }
-                partitionHelper.setPartition(stmt, i);
+                stmt.setObject(col++, partitionId);
 
                 stmt.addBatch();
                 total++;

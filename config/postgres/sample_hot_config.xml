@@ -11,17 +11,10 @@
     <batchsize>128</batchsize>
 
     <!-- Scalefactor in YCSB is *1000 the number of rows in the USERTABLE-->
-    <scalefactor>30</scalefactor>
+    <scalefactor>1</scalefactor>
     
     <!-- Optional: Override the field size for each column in USERTABLE -->
     <fieldSize>8</fieldSize>
-
-    <!-- If not specified, load from 0 -->
-    <!-- <loadfrom>0</loadfrom> -->
-    <!-- If not specified, load to the maximum number of rows based on the scale factor -->
-    <!-- <loadto>30000</loadto> -->
-
-    <numregions>3</numregions>
 
     <!-- Current region -->
     <region>0</region>
@@ -38,12 +31,13 @@
         <work>
             <time>10</time>
             <rate>10000</rate>
-            <weights>1,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0</weights>
+            <weights>100,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0, 0,0,0,0,0,0</weights>
         </work>
     </works>
 
     <!-- HOT Procedures declaration -->
     <transactiontypes>
+        <!-- Workload A: 50% Read, 50% Write -->
         <transactiontype>
             <name>WorkloadA1</name>
         </transactiontype>
@@ -62,6 +56,7 @@
         <transactiontype>
             <name>WorkloadA6</name>
         </transactiontype>
+        <!-- Workload B: 95% Read, 5% Write -->
         <transactiontype>
             <name>WorkloadB1</name>
         </transactiontype>
@@ -80,6 +75,7 @@
         <transactiontype>
             <name>WorkloadB6</name>
         </transactiontype>
+        <!-- Workload C: 100% Read -->
         <transactiontype>
             <name>WorkloadC1</name>
         </transactiontype>
@@ -98,6 +94,45 @@
         <transactiontype>
             <name>WorkloadC6</name>
         </transactiontype>
+        <!-- Workload D: 95% Read (latest), 5% Insert -->
+        <transactiontype>
+            <name>WorkloadD1</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadD2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadD3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadD4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadD5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadD6</name>
+        </transactiontype>
+        <!-- Workload E: 95% Scan, 5% Insert -->
+        <transactiontype>
+            <name>WorkloadE1</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadE2</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadE3</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadE4</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadE5</name>
+        </transactiontype>
+        <transactiontype>
+            <name>WorkloadE6</name>
+        </transactiontype>
+        <!-- Workload F: 50% Read, 50% RMW -->
         <transactiontype>
             <name>WorkloadF1</name>
         </transactiontype>

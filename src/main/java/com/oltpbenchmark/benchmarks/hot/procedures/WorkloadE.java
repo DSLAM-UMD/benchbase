@@ -23,17 +23,16 @@ import java.util.List;
 import java.util.Random;
 
 public class WorkloadE extends BasicProcedures {
-    public void run(Connection conn, Key[] keys, int count, String[] vals, List<String[]> results, Random rng)
+    public void run(Connection conn, int numPartitions, int homePartition,
+            Key[] keys, String[] vals, List<String[]> results, Random rng)
             throws SQLException {
         for (Key k : keys) {
             if (rng.nextInt(100) < 95) {
+                int count = rng.nextInt(100) + 1;
                 scan(conn, k, count, results);
-                System.out.printf("%d(S-%s) ", k.name, k.partition.getId());
             } else {
-                insert(conn, k, vals);
-                System.out.printf("%d(I-%s) ", k.name, k.partition.getId());
+                insert(conn, k.convertToInsert(numPartitions, homePartition), vals);
             }
         }
-        System.out.println();
     }
 }

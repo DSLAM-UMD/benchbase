@@ -10,4 +10,9 @@ public class Key {
     this.name = name;
     this.partition = partition;
   }
+
+  public Key convertToInsert(int numPartitions, int homePartition) {
+    this.name = this.partition.nextInsert(numPartitions, homePartition);
+    return this;
+  }
 }

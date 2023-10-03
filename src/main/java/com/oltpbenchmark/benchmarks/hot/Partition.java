@@ -1,39 +1,33 @@
 package com.oltpbenchmark.benchmarks.hot;
 
-import java.util.Optional;
 import java.util.Random;
 
+import com.oltpbenchmark.distributions.CounterGenerator;
+
 public class Partition {
-    private String id;
+    private Object id;
     private int from;
     private int to;
     private int hot;
-    private Optional<Class<?>> idType;
+    private CounterGenerator insertCounter = new CounterGenerator(0);
 
-    public Partition(String id, int from, int to, int hot, Optional<Class<?>> idType) {
+    public Partition(Object id, int from, int to, int hot) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
-        this.idType = idType;
     }
 
-    public Optional<Class<?>> getIdType() {
-        return idType;
+    public int getFrom() {
+        return from;
     }
 
-    public String getId() {
+    public int getTo() {
+        return to;
+    }
+
+    public Object getId() {
         return id;
-    }
-
-    public String getStringId() {
-        assert idType.isPresent() && idType.get() == String.class;
-        return id;
-    }
-
-    public int getIntId() {
-        assert idType.isPresent() && idType.get() == Integer.class;
-        return Integer.parseInt(id);
     }
 
     public int nextHot(Random rng) {
@@ -44,12 +38,24 @@ public class Partition {
         return (to - from - hot <= 0) ? this.next(rng) : (rng.nextInt(to - from - hot) + from + hot);
     }
 
-    public boolean isIncludedIn(int from, int to) {
-        return from <= this.from && this.to <= to;
+    public int nextLatest(Random rng) {
+        int latest = to + this.insertCounter.lastInt();
+        int offset = (hot <= 0) ? rng.nextInt(to - from) : rng.nextInt(hot);
+        return latest - offset;
     }
 
     public String toString() {
-        return this.id + ": [" + this.from + ", " + this.to + ")";
+        return this.id + ": [" + this.from + ", " + this.to + ") Insert: " + this.insertCounter.lastInt();
+    }
+
+    public void setInsertCounterStartFromMaxKey(int numPartition, int maxKey) {
+        int start = (maxKey - to) / numPartition + 1;
+        this.insertCounter = new CounterGenerator(start);
+    }
+
+    public int nextInsert(int numPartitions, int homePartition) {
+        int insertCount = this.insertCounter.nextInt();
+        return to + insertCount * numPartitions + homePartition;
     }
 
     private int next(Random rng) {

@@ -27,7 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
@@ -57,7 +56,7 @@ class BasicProcedures extends Procedure {
     }
 
     protected void scan(Connection conn, Key start, int count, List<String[]> results) throws SQLException {
-        try (PreparedStatement stmt = this.prepareScanStmt(conn, start, count, results)) {
+        try (PreparedStatement stmt = this.prepareScanStmt(conn, start, count)) {
             try (ResultSet r = stmt.executeQuery()) {
                 while (r.next()) {
                     String[] data = new String[YCSBConstants.NUM_FIELDS];
@@ -88,68 +87,48 @@ class BasicProcedures extends Procedure {
     }
 
     public final SQLStmt insertStmt = new SQLStmt(
-            "INSERT INTO " + TABLE_NAME + " VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+            "INSERT INTO " + TABLE_NAME + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
 
     public PreparedStatement prepareInsertStmt(Connection conn, Key key, String[] vals) throws SQLException {
-        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, insertStmt);
-        stmt.setInt(1, key.name);
-        for (int i = 0; i < vals.length; i++) {
-            stmt.setString(i + 2, vals[i]);
+        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, insertStmt, key.name);
+        for (int i = 2; i <= 11; i++) {
+            stmt.setString(i, vals[i - 2]);
         }
+        stmt.setObject(12, key.partition.getId());
         return stmt;
     }
 
     private final static SQLStmt readStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=?");
-    private final static SQLStmt readStmtWithGeoPartition = new SQLStmt(
             "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and GEO_PARTITION=?");
 
     private PreparedStatement prepareReadStmt(Connection conn, Key key) throws SQLException {
-        Optional<Class<?>> partitionIdType = key.partition.getIdType();
-        SQLStmt chosenReadStmt = partitionIdType.isPresent() ? readStmtWithGeoPartition : readStmt;
-        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, chosenReadStmt, key.name);
-        if (partitionIdType.isPresent()) {
-            if (partitionIdType.get().equals(Integer.class)) {
-                stmt.setInt(2, key.partition.getIntId());
-            } else if (partitionIdType.get().equals(String.class)) {
-                stmt.setString(2, key.partition.getStringId());
-            }
-        }
+        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, readStmt, key.name);
+        stmt.setObject(2, key.partition.getId());
         return stmt;
     }
 
     private final SQLStmt updateStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
-    private final SQLStmt updateStmtWithGeoPartition = new SQLStmt(
-            "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
                     "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and GEO_PARTITION=?");
 
     private PreparedStatement prepareUpdateStmt(Connection conn, Key key, String[] fields) throws SQLException {
-        Optional<Class<?>> partitionIdType = key.partition.getIdType();
-        SQLStmt chosenUpdateStmt = partitionIdType.isPresent() ? updateStmtWithGeoPartition : updateStmt;
-        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, chosenUpdateStmt, key.name);
+        PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, updateStmt);
+        for (int i = 1; i <= 10; i++) {
+            stmt.setString(i, fields[i - 1]);
+        }
         stmt.setInt(11, key.name);
-        if (partitionIdType.isPresent()) {
-            if (partitionIdType.get().equals(Integer.class)) {
-                stmt.setInt(12, key.partition.getIntId());
-            } else if (partitionIdType.get().equals(String.class)) {
-                stmt.setString(12, key.partition.getStringId());
-            }
-        }
-        for (int i = 0; i < fields.length; i++) {
-            stmt.setString(i + 1, fields[i]);
-        }
+        stmt.setObject(12, key.partition.getId());
         return stmt;
     }
 
     private final SQLStmt scanStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " WHERE YCSB_KEY > ? AND YCSB_KEY < ?");
+            "SELECT * FROM " + TABLE_NAME + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
 
-    private PreparedStatement prepareScanStmt(Connection conn, Key start, int count, List<String[]> results)
+    private PreparedStatement prepareScanStmt(Connection conn, Key start, int count)
             throws SQLException {
         PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, scanStmt, start.name,
                 start.name + count);
+        stmt.setObject(3, start.partition.getId());
         return stmt;
     }
 }
