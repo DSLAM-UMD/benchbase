@@ -101,7 +101,8 @@ public class HOTBenchmark extends BenchmarkModule {
                 return Arrays.asList();
             }
 
-            Partition[] otherPartitions = partitionHelper.getPartitions().stream().filter(p -> p != homePartition)
+            Partition[] otherPartitions = partitionHelper.getPartitions().stream()
+                    .filter(p -> p != homePartition && !p.isEmpty())
                     .toArray(Partition[]::new);
 
             List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
