@@ -189,7 +189,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
 
     private Key[] selectKeys(int numPartitions, boolean latest) {
         if (numPartitions > this.otherPartitions.length + 1) {
-            throw new IllegalArgumentException(String.format(
+            throw new UserAbortException(String.format(
                     "Number of accessed partitions (%d) cannot be greater than the number of available partitions (%d)",
                     numPartitions, this.otherPartitions.length + 1));
         }
