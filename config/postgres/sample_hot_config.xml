@@ -16,6 +16,9 @@
     <!-- Optional: Override the field size for each column in USERTABLE -->
     <fieldSize>8</fieldSize>
 
+    <!-- Load data in all partitions -->
+    <loadall>true</loadall>
+
     <!-- Current region -->
     <region>0</region>
 

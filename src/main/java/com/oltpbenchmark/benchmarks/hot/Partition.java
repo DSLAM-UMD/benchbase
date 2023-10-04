@@ -11,11 +11,19 @@ public class Partition {
     private int hot;
     private CounterGenerator insertCounter = new CounterGenerator(0);
 
+    public Partition(Object id) {
+        this(id, 0, 0, 0);
+    }
+
     public Partition(Object id, int from, int to, int hot) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
+    }
+
+    public boolean isEmpty() {
+        return from >= to;
     }
 
     public int getFrom() {
@@ -31,14 +39,17 @@ public class Partition {
     }
 
     public int nextHot(Random rng) {
+        checkEmpty();
         return (hot <= 0) ? this.next(rng) : (rng.nextInt(hot) + from);
     }
 
     public int nextCold(Random rng) {
+        checkEmpty();
         return (to - from - hot <= 0) ? this.next(rng) : (rng.nextInt(to - from - hot) + from + hot);
     }
 
     public int nextLatest(Random rng) {
+        checkEmpty();
         int latest = to + this.insertCounter.lastInt();
         int offset = (hot <= 0) ? rng.nextInt(to - from) : rng.nextInt(hot);
         return latest - offset;
@@ -54,11 +65,19 @@ public class Partition {
     }
 
     public int nextInsert(int numPartitions, int homePartition) {
+        checkEmpty();
         int insertCount = this.insertCounter.nextInt();
         return to + insertCount * numPartitions + homePartition;
     }
 
     private int next(Random rng) {
+        checkEmpty();
         return rng.nextInt(to - from) + from;
+    }
+
+    private void checkEmpty() {
+        if (isEmpty()) {
+            throw new IllegalStateException("Partition is empty");
+        }
     }
 }

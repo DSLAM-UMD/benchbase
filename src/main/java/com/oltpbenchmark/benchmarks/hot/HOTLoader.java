@@ -32,10 +32,12 @@ import java.util.List;
 
 class HOTLoader extends Loader<HOTBenchmark> {
     private final int numRecords;
+    private final Partition[] partitions;
 
-    public HOTLoader(HOTBenchmark benchmark) {
+    public HOTLoader(HOTBenchmark benchmark, Partition[] partitions) {
         super(benchmark);
         this.numRecords = (int) Math.round(YCSBConstants.RECORD_COUNT * this.scaleFactor);
+        this.partitions = partitions;
         if (LOG.isDebugEnabled()) {
             LOG.debug("# of RECORDS:  {}", this.numRecords);
         }
@@ -44,22 +46,11 @@ class HOTLoader extends Loader<HOTBenchmark> {
     @Override
     public List<LoaderThread> createLoaderThreads() {
         List<LoaderThread> threads = new ArrayList<>();
-        PartitionHelper phelper = this.benchmark.partitionHelper;
+        for (Partition p : this.partitions) {
+            LOG.info("Loading data [{}, {}) for partition {}", p.getFrom(), p.getTo(), p.getId());
 
-        int fromRegion, toRegion;
-        if (this.benchmark.region == 0) {
-            fromRegion = 1;
-            toRegion = phelper.partitionCount();
-        } else {
-            fromRegion = toRegion = this.benchmark.region;
-        }
-
-        for (int region = fromRegion; region <= toRegion; region++) {
-            final Partition partition = phelper.getPartitionForRegion(region);
-            LOG.info("Loading data [{}, {}) for region {}", 0, this.numRecords, region);
-
-            int count = partition.getFrom();
-            while (count < partition.getTo()) {
+            int count = p.getFrom();
+            while (count < p.getTo()) {
                 final int start = count;
                 final int stop = Math.min(start + HOTConstants.THREAD_BATCH_SIZE, this.numRecords);
                 threads.add(new LoaderThread(this.benchmark) {
@@ -68,7 +59,7 @@ class HOTLoader extends Loader<HOTBenchmark> {
                         if (LOG.isDebugEnabled()) {
                             LOG.debug(String.format("HOTLoadThread[%d, %d]", start, stop));
                         }
-                        loadRecords(conn, partition.getId(), start, stop);
+                        loadRecords(conn, p.getId(), start, stop);
                     }
                 });
                 count = stop;

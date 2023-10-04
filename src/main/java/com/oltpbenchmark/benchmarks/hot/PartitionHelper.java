@@ -50,18 +50,17 @@ public class PartitionHelper {
         return partitions.size();
     }
 
-    public Partition getPartitionForRegion(int region) {
-        if (region == 0) {
-            throw new IllegalArgumentException("No partition available for region 0");
-        }
-        return partitions.get(region - 1);
+    public Partition getPartition(int region) {
+        return partitions.get(region);
     }
 
-    public Iterable<Partition> getPartitions() {
+    public List<Partition> getPartitions() {
         return partitions;
     }
 
     private void computePostgresPartitions(Connection conn) throws SQLException {
+        appendPartition(0);
+
         boolean hasRegionColumn = false;
         String checkRegionColumn = """
                     SELECT column_name
@@ -95,6 +94,8 @@ public class PartitionHelper {
     }
 
     private void computeCitusPartitions(Connection conn) throws SQLException {
+        appendPartition(0);
+
         String sql = String.format("""
                   with cand_shards as (
                       select
@@ -121,11 +122,13 @@ public class PartitionHelper {
     }
 
     private void computeYugabytePartitions(Connection conn) throws SQLException {
+        appendPartition("global");
+
         String sql = String.format("""
                   with partitions as (select i.inhrelid as partoid
                                       from pg_inherits i
                                       join pg_class cl on i.inhparent = cl.oid
-                                      where cl.relname = '%s'),
+                                      where lower(cl.relname = '%s'),
                       expressions as (select pg_get_expr(c.relpartbound, c.oid, true) as expression
                                       from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
                   select (regexp_match(expression, 'FOR VALUES IN \\(''(.+)''\\)'))[1] as region
@@ -144,6 +147,13 @@ public class PartitionHelper {
     }
 
     private void finalizePartitions(Connection conn) throws SQLException {
+        if (this.partitions.size() > 1) {
+            // If there are more than 1 partition, make the first partition the global
+            // partition, which should not have any data.
+            Partition p0 = this.partitions.remove(0);
+            this.partitions.add(0, new Partition(p0.getId()));
+        }
+
         String maxKeySql = """
                 SELECT MAX(ycsb_key)
                 FROM usertable

@@ -28,7 +28,6 @@ import com.oltpbenchmark.util.TextGenerator;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * HOTWorker Implementation
@@ -41,7 +40,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
     private final String[] results = new String[HOTConstants.NUM_FIELDS];
     private final Partition homePartition;
-    private final List<Partition> otherPartitions;
+    private final Partition[] otherPartitions;
     private final int keysPerTxn;
 
     private final WorkloadA workloadA;
@@ -105,16 +104,11 @@ class HOTWorker extends Worker<HOTBenchmark> {
             WorkloadF6.class
     };
 
-    public HOTWorker(HOTBenchmark benchmarkModule, int id) {
+    public HOTWorker(HOTBenchmark benchmarkModule, int id, Partition homePartition, Partition[] otherPartitions) {
         super(benchmarkModule, id);
         this.data = new char[benchmarkModule.fieldSize];
-        this.homePartition = benchmarkModule.partitionHelper.getPartitionForRegion(benchmarkModule.region);
-        this.otherPartitions = new ArrayList<>();
-        for (Partition p : benchmarkModule.partitionHelper.getPartitions()) {
-            if (p != this.homePartition) {
-                this.otherPartitions.add(p);
-            }
-        }
+        this.homePartition = homePartition;
+        this.otherPartitions = otherPartitions;
         this.keysPerTxn = benchmarkModule.keysPerTxn;
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
@@ -163,7 +157,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
         for (int involvedPartitions = 1; involvedPartitions < workloadDs.length; involvedPartitions++) {
             if (procClass.equals(workloadDs[involvedPartitions])) {
                 this.buildParameters();
-                int numPartitions = this.otherPartitions.size() + 1;
+                int numPartitions = this.otherPartitions.length + 1;
                 int homePartition = this.getBenchmark().region - 1;
                 this.workloadD.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, true),
                         this.params,
@@ -175,7 +169,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
         for (int involvedPartitions = 1; involvedPartitions < workloadEs.length; involvedPartitions++) {
             if (procClass.equals(workloadEs[involvedPartitions])) {
                 this.buildParameters();
-                int numPartitions = this.otherPartitions.size() + 1;
+                int numPartitions = this.otherPartitions.length + 1;
                 int homePartition = this.getBenchmark().region - 1;
                 this.workloadE.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, false),
                         this.params,
@@ -194,10 +188,10 @@ class HOTWorker extends Worker<HOTBenchmark> {
     }
 
     private Key[] selectKeys(int numPartitions, boolean latest) {
-        if (numPartitions > this.otherPartitions.size() + 1) {
+        if (numPartitions > this.otherPartitions.length + 1) {
             throw new IllegalArgumentException(String.format(
                     "Number of accessed partitions (%d) cannot be greater than the number of available partitions (%d)",
-                    numPartitions, this.otherPartitions.size() + 1));
+                    numPartitions, this.otherPartitions.length + 1));
         }
 
         // Select the partitions that the txn will accept. The home partition is always
@@ -205,12 +199,12 @@ class HOTWorker extends Worker<HOTBenchmark> {
         Partition[] chosenPartitions = new Partition[numPartitions];
         chosenPartitions[0] = this.homePartition;
         int[] chosenOtherPartitions = rng()
-                .ints(0, this.otherPartitions.size())
+                .ints(0, this.otherPartitions.length)
                 .distinct()
                 .limit(numPartitions - 1)
                 .toArray();
         for (int i = 1; i < numPartitions; i++) {
-            chosenPartitions[i] = this.otherPartitions.get(chosenOtherPartitions[i - 1]);
+            chosenPartitions[i] = this.otherPartitions[chosenOtherPartitions[i - 1]];
         }
 
         // Select the keys from the partitions

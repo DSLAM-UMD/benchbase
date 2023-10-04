@@ -27,7 +27,9 @@ import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class HOTBenchmark extends BenchmarkModule {
@@ -41,7 +43,7 @@ public class HOTBenchmark extends BenchmarkModule {
     protected final int region;
     protected final int hot;
     protected final int keysPerTxn;
-    protected final PartitionHelper partitionHelper;
+    protected final boolean loadAll;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
@@ -50,6 +52,7 @@ public class HOTBenchmark extends BenchmarkModule {
         int region = 0;
         int hot = 0;
         int keysPerTxn = 8;
+        boolean loadAll = false;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
         if (xmlConfig != null) {
@@ -68,6 +71,10 @@ public class HOTBenchmark extends BenchmarkModule {
             if (xmlConfig.containsKey("keyspertxn")) {
                 keysPerTxn = xmlConfig.getInt("keyspertxn");
             }
+
+            if (xmlConfig.containsKey("loadall")) {
+                loadAll = xmlConfig.getBoolean("loadall");
+            }
         }
 
         this.fieldSize = fieldSize;
@@ -77,28 +84,53 @@ public class HOTBenchmark extends BenchmarkModule {
         this.region = region;
         this.hot = hot;
         this.keysPerTxn = keysPerTxn;
-        try {
-            this.partitionHelper = new PartitionHelper(this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        this.loadAll = loadAll;
     }
 
     @Override
     protected List<Worker<? extends BenchmarkModule>> makeWorkersImpl() {
-        for (Partition p : this.partitionHelper.getPartitions()) {
-            LOG.info("Partition - {}", p);
+        try {
+            PartitionHelper partitionHelper = new PartitionHelper(this);
+
+            for (Partition p : partitionHelper.getPartitions()) {
+                LOG.info("Partition - {}", p);
+            }
+
+            Partition homePartition = partitionHelper.getPartition(this.region);
+            if (homePartition.isEmpty()) {
+                return Arrays.asList();
+            }
+
+            Partition[] otherPartitions = partitionHelper.getPartitions().stream().filter(p -> p != homePartition)
+                    .toArray(Partition[]::new);
+
+            List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
+            for (int i = 0; i < workConf.getTerminals(); ++i) {
+                workers.add(new HOTWorker(this, i, homePartition, otherPartitions));
+            }
+            return workers;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
-        List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
-        for (int i = 0; i < workConf.getTerminals(); ++i) {
-            workers.add(new HOTWorker(this, i));
-        }
-        return workers;
+
     }
 
     @Override
     protected Loader<HOTBenchmark> makeLoaderImpl() {
-        return new HOTLoader(this);
+        try {
+            PartitionHelper partitionHelper = new PartitionHelper(this);
+            Partition[] loadedPartitions;
+
+            if (this.loadAll) {
+                loadedPartitions = partitionHelper.getPartitions().toArray(Partition[]::new);
+            } else {
+                loadedPartitions = new Partition[] { partitionHelper.getPartition(this.region) };
+            }
+
+            return new HOTLoader(this, loadedPartitions);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
