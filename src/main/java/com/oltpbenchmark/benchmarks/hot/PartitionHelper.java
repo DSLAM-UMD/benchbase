@@ -46,10 +46,6 @@ public class PartitionHelper {
         }
     }
 
-    public int partitionCount() {
-        return partitions.size();
-    }
-
     public Partition getPartition(int region) {
         return partitions.get(region);
     }
@@ -147,11 +143,13 @@ public class PartitionHelper {
     }
 
     private void finalizePartitions(Connection conn) throws SQLException {
+        int numInsertionSlots = 1;
         if (this.partitions.size() > 1) {
             // If there are more than 1 partition, make the first partition the global
             // partition, which should not have any data.
             Partition p0 = this.partitions.remove(0);
             this.partitions.add(0, new Partition(p0.getId()));
+            numInsertionSlots = this.partitions.size() - 1;
         }
 
         String maxKeySql = """
@@ -167,7 +165,7 @@ public class PartitionHelper {
                     while (res.next()) {
                         maxKey = res.getInt(1);
                     }
-                    p.setInsertCounterStartFromMaxKey(this.partitions.size(), maxKey);
+                    p.setInsertCounterStartFromMaxKey(numInsertionSlots, maxKey);
                 }
             }
         }
