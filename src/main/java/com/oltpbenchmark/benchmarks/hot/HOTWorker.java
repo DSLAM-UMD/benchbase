@@ -29,12 +29,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-/**
- * HOTWorker Implementation
- * I forget who really wrote this but I fixed it up in 2016...
- *
- * @author pavlo
- */
 class HOTWorker extends Worker<HOTBenchmark> {
     private final char[] data;
     private final String[] params = new String[HOTConstants.NUM_FIELDS];
@@ -157,9 +151,9 @@ class HOTWorker extends Worker<HOTBenchmark> {
         for (int involvedPartitions = 1; involvedPartitions < workloadDs.length; involvedPartitions++) {
             if (procClass.equals(workloadDs[involvedPartitions])) {
                 this.buildParameters();
-                int numPartitions = this.otherPartitions.length + 1;
-                int homePartition = this.getBenchmark().region - 1;
-                this.workloadD.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, true),
+                int numSlots = this.otherPartitions.length + 1;
+                int slot = Math.max(this.getBenchmark().region - 1, 0);
+                this.workloadD.run(conn, numSlots, slot, selectKeys(involvedPartitions, true),
                         this.params,
                         this.results,
                         rng());
@@ -169,9 +163,9 @@ class HOTWorker extends Worker<HOTBenchmark> {
         for (int involvedPartitions = 1; involvedPartitions < workloadEs.length; involvedPartitions++) {
             if (procClass.equals(workloadEs[involvedPartitions])) {
                 this.buildParameters();
-                int numPartitions = this.otherPartitions.length + 1;
-                int homePartition = this.getBenchmark().region - 1;
-                this.workloadE.run(conn, numPartitions, homePartition, selectKeys(involvedPartitions, false),
+                int numSlots = this.otherPartitions.length + 1;
+                int slot = Math.max(this.getBenchmark().region - 1, 0);
+                this.workloadE.run(conn, numSlots, slot, selectKeys(involvedPartitions, false),
                         this.params,
                         new ArrayList<>(),
                         rng());

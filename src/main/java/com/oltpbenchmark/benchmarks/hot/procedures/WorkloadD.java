@@ -22,14 +22,14 @@ import java.sql.SQLException;
 import java.util.Random;
 
 public class WorkloadD extends BasicProcedures {
-    public void run(Connection conn, int numPartitions, int homePartition,
+    public void run(Connection conn, int numSlots, int slot,
             Key[] keys, String[] vals, String[] results, Random rng)
             throws SQLException {
         for (Key k : keys) {
             if (rng.nextInt(100) < 95) {
                 read(conn, k, results);
             } else {
-                insert(conn, k.convertToInsert(numPartitions, homePartition), vals);
+                insert(conn, k.convertToInsert(numSlots, slot), vals);
             }
         }
     }

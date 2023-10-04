@@ -59,15 +59,15 @@ public class Partition {
         return this.id + ": [" + this.from + ", " + this.to + ") Insert: " + this.insertCounter.lastInt();
     }
 
-    public void setInsertCounterStartFromMaxKey(int numPartition, int maxKey) {
-        int start = (maxKey - to) / numPartition + 1;
+    public void setInsertCounterStartFromMaxKey(int numSlots, int maxKey) {
+        int start = (maxKey - to) / numSlots + 1;
         this.insertCounter = new CounterGenerator(start);
     }
 
-    public int nextInsert(int numPartitions, int homePartition) {
+    public int nextInsert(int numSlots, int slot) {
         checkEmpty();
         int insertCount = this.insertCounter.nextInt();
-        return to + insertCount * numPartitions + homePartition;
+        return to + insertCount * numSlots + slot;
     }
 
     private int next(Random rng) {

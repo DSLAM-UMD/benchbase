@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Random;
 
 public class WorkloadE extends BasicProcedures {
-    public void run(Connection conn, int numPartitions, int homePartition,
+    public void run(Connection conn, int numSlots, int slot,
             Key[] keys, String[] vals, List<String[]> results, Random rng)
             throws SQLException {
         for (Key k : keys) {
@@ -31,7 +31,7 @@ public class WorkloadE extends BasicProcedures {
                 int count = rng.nextInt(100) + 1;
                 scan(conn, k, count, results);
             } else {
-                insert(conn, k.convertToInsert(numPartitions, homePartition), vals);
+                insert(conn, k.convertToInsert(numSlots, slot), vals);
             }
         }
     }
