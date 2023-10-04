@@ -192,13 +192,15 @@ class HOTWorker extends Worker<HOTBenchmark> {
         // included. The other partitions are chosen randomly without replacement
         Partition[] chosenPartitions = new Partition[numPartitions];
         chosenPartitions[0] = this.homePartition;
-        int[] chosenOtherPartitions = rng()
-                .ints(0, this.otherPartitions.length)
-                .distinct()
-                .limit(numPartitions - 1)
-                .toArray();
-        for (int i = 1; i < numPartitions; i++) {
-            chosenPartitions[i] = this.otherPartitions[chosenOtherPartitions[i - 1]];
+        if (this.otherPartitions.length > 0) {
+            int[] chosenOtherPartitions = rng()
+                    .ints(0, this.otherPartitions.length)
+                    .distinct()
+                    .limit(numPartitions - 1)
+                    .toArray();
+            for (int i = 1; i < numPartitions; i++) {
+                chosenPartitions[i] = this.otherPartitions[chosenOtherPartitions[i - 1]];
+            }
         }
 
         // Select the keys from the partitions
