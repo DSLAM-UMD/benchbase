@@ -19,12 +19,11 @@ package com.oltpbenchmark.benchmarks.hot.procedures;
 
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
-import com.oltpbenchmark.benchmarks.hot.HOTConstants;
-import com.oltpbenchmark.benchmarks.ycsb.YCSBConstants;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -41,7 +40,7 @@ class BasicProcedures extends Procedure {
         try (PreparedStatement stmt = this.prepareReadStmt(conn, key)) {
             try (ResultSet r = stmt.executeQuery()) {
                 while (r.next()) {
-                    for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
+                    for (int i = 0; i < results.length; i++) {
                         results[i] = r.getString(i + 1);
                     }
                 }
@@ -59,7 +58,8 @@ class BasicProcedures extends Procedure {
         try (PreparedStatement stmt = this.prepareScanStmt(conn, start, count)) {
             try (ResultSet r = stmt.executeQuery()) {
                 while (r.next()) {
-                    String[] data = new String[YCSBConstants.NUM_FIELDS];
+                    ResultSetMetaData meta = r.getMetaData();
+                    String[] data = new String[meta.getColumnCount()];
                     for (int i = 0; i < data.length; i++) {
                         data[i] = r.getString(i + 1);
                     }
@@ -75,7 +75,7 @@ class BasicProcedures extends Procedure {
         try (PreparedStatement stmt = this.prepareReadStmt(conn, key)) {
             try (ResultSet r = stmt.executeQuery()) {
                 while (r.next()) {
-                    for (int i = 0; i < HOTConstants.NUM_FIELDS; i++) {
+                    for (int i = 0; i < results.length; i++) {
                         results[i] = r.getString(i + 1);
                     }
                 }
@@ -125,8 +125,18 @@ class BasicProcedures extends Procedure {
     // network and causes a bottleneck there. This obscure the evaluation of the
     // database systems themselves, so we only select a few columns here.
     private final SQLStmt scanStmt = new SQLStmt(
-            "SELECT YCSB_KEY, FIELD1, GEO_PARTITION FROM " + TABLE_NAME
-                    + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
+            "SELECT YCSB_KEY, GEO_PARTITION, "
+                    + "LENGTH(FIELD1) + "
+                    + "LENGTH(FIELD2) + "
+                    + "LENGTH(FIELD3) + "
+                    + "LENGTH(FIELD4) + "
+                    + "LENGTH(FIELD5) + "
+                    + "LENGTH(FIELD6) + "
+                    + "LENGTH(FIELD7) + "
+                    + "LENGTH(FIELD8) + "
+                    + "LENGTH(FIELD9) + "
+                    + "LENGTH(FIELD10) AS TOTAL FROM "
+                    + TABLE_NAME + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
 
     private PreparedStatement prepareScanStmt(Connection conn, Key start, int count)
             throws SQLException {
