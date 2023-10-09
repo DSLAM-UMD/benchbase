@@ -28,6 +28,9 @@
     <!-- Number of keys per transaction -->
     <keyspertxn>8</keyspertxn>
 
+    <!-- The maximum number of keys to select in scanning queries -->
+    <maxscancount>100</maxscancount>
+
     <!-- The workload -->
     <terminals>1</terminals>
     <works>
