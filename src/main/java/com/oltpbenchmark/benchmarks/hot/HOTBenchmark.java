@@ -43,6 +43,7 @@ public class HOTBenchmark extends BenchmarkModule {
     protected final int region;
     protected final int hot;
     protected final int keysPerTxn;
+    protected final int maxScanCount;
     protected final boolean loadAll;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
@@ -53,6 +54,7 @@ public class HOTBenchmark extends BenchmarkModule {
         int hot = 0;
         int keysPerTxn = 8;
         boolean loadAll = false;
+        int maxScanCount = 100;
 
         XMLConfiguration xmlConfig = workConf.getXmlConfig();
         if (xmlConfig != null) {
@@ -72,6 +74,10 @@ public class HOTBenchmark extends BenchmarkModule {
                 keysPerTxn = xmlConfig.getInt("keyspertxn");
             }
 
+            if (xmlConfig.containsKey("maxscancount")) {
+                maxScanCount = xmlConfig.getInt("maxscancount");
+            }
+
             if (xmlConfig.containsKey("loadall")) {
                 loadAll = xmlConfig.getBoolean("loadall");
             }
@@ -84,6 +90,7 @@ public class HOTBenchmark extends BenchmarkModule {
         this.region = region;
         this.hot = hot;
         this.keysPerTxn = keysPerTxn;
+        this.maxScanCount = maxScanCount;
         this.loadAll = loadAll;
     }
 

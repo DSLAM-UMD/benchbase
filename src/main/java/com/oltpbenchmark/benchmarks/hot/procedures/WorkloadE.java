@@ -24,11 +24,11 @@ import java.util.Random;
 
 public class WorkloadE extends BasicProcedures {
     public void run(Connection conn, int numSlots, int slot,
-            Key[] keys, String[] vals, List<String[]> results, Random rng)
+            Key[] keys, int maxCount, String[] vals, List<String[]> results, Random rng)
             throws SQLException {
         for (Key k : keys) {
             if (rng.nextInt(100) < 95) {
-                int count = rng.nextInt(100) + 1;
+                int count = rng.nextInt(maxCount) + 1;
                 scan(conn, k, count, results);
             } else {
                 insert(conn, k.convertToInsert(numSlots, slot), vals);

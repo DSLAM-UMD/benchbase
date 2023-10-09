@@ -121,8 +121,12 @@ class BasicProcedures extends Procedure {
         return stmt;
     }
 
+    // Selecting all columns results in too much data to be transferred over the
+    // network and causes a bottleneck there. This obscure the evaluation of the
+    // database systems themselves, so we only select a few columns here.
     private final SQLStmt scanStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
+            "SELECT YCSB_KEY, FIELD1, GEO_PARTITION FROM " + TABLE_NAME
+                    + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
 
     private PreparedStatement prepareScanStmt(Connection conn, Key start, int count)
             throws SQLException {

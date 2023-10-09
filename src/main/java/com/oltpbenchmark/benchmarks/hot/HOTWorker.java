@@ -36,6 +36,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final Partition homePartition;
     private final Partition[] otherPartitions;
     private final int keysPerTxn;
+    private final int maxScanCount;
 
     private final WorkloadA workloadA;
     private final static Class<?>[] workloadAs = new Class[] {
@@ -104,6 +105,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
         this.homePartition = homePartition;
         this.otherPartitions = otherPartitions;
         this.keysPerTxn = benchmarkModule.keysPerTxn;
+        this.maxScanCount = benchmarkModule.maxScanCount;
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
         // everytime we want to execute a txn. This is important to do on
@@ -166,6 +168,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
                 int numSlots = this.otherPartitions.length + 1;
                 int slot = Math.max(this.getBenchmark().region - 1, 0);
                 this.workloadE.run(conn, numSlots, slot, selectKeys(involvedPartitions, false),
+                        this.maxScanCount,
                         this.params,
                         new ArrayList<>(),
                         rng());
