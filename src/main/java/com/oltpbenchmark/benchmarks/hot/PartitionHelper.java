@@ -152,11 +152,11 @@ public class PartitionHelper {
             numInsertionSlots = this.partitions.size() - 1;
         }
 
-        String maxKeySql = """
+        String maxKeySql = String.format("""
                 SELECT MAX(ycsb_key)
-                FROM usertable
+                FROM %s
                 WHERE geo_partition = ?;
-                """;
+                """, HOTConstants.TABLE_NAME);
         try (PreparedStatement stmt = conn.prepareStatement(maxKeySql)) {
             for (Partition p : this.partitions) {
                 stmt.setObject(1, p.getId());

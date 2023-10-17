@@ -69,7 +69,7 @@ class HOTLoader extends Loader<HOTBenchmark> {
     }
 
     private void loadRecords(Connection conn, Object partitionId, int start, int stop) throws SQLException {
-        Table catalog_tbl = benchmark.getCatalog().getTable("USERTABLE");
+        Table catalog_tbl = benchmark.getCatalog().getTable(HOTConstants.TABLE_NAME);
 
         String sql = SQLUtil.getInsertSQL(catalog_tbl, this.getDatabaseType());
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {

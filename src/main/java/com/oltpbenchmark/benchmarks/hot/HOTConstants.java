@@ -25,7 +25,8 @@ public abstract class HOTConstants {
 
     /**
      * The max size of each field in the USERTABLE.
-     * NOTE: If you increase this value here in the code, then you must update all the DDL files.
+     * NOTE: If you increase this value here in the code, then you must update all
+     * the DDL files.
      */
     public static final int MAX_FIELD_SIZE = 100; // chars
 
