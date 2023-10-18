@@ -84,7 +84,7 @@ public class PartitionHelper {
         try (Statement stmt = conn.createStatement();
                 ResultSet res = stmt.executeQuery(getPartitionName)) {
             while (res.next()) {
-                appendPartition(res.getObject(1));
+                appendPartition(hasRegionColumn ? res.getObject(1) : this.partitions.size());
             }
         }
     }
