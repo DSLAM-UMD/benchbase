@@ -86,63 +86,60 @@ class BasicProcedures extends Procedure {
         }
     }
 
-    public final SQLStmt insertStmt = new SQLStmt(
-            "INSERT INTO " + TABLE_NAME + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-
     public PreparedStatement prepareInsertStmt(Connection conn, Key key, String[] vals) throws SQLException {
+        String tableName = TABLE_NAME + "_" + key.partition.getId();
+        SQLStmt insertStmt = new SQLStmt(
+                "INSERT INTO " + tableName + " VALUES (?,?,?,?,?,?,?,?,?,?,?)");
         PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, insertStmt, key.name);
         for (int i = 2; i <= 11; i++) {
             stmt.setString(i, vals[i - 2]);
         }
-        stmt.setObject(12, key.partition.getId());
         return stmt;
     }
-
-    private final static SQLStmt readStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? and GEO_PARTITION=?");
 
     private PreparedStatement prepareReadStmt(Connection conn, Key key) throws SQLException {
+        String tableName = TABLE_NAME + "_" + key.partition.getId();
+        SQLStmt readStmt = new SQLStmt(
+                "SELECT * FROM " + tableName + " where YCSB_KEY=?");
+
         PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, readStmt, key.name);
-        stmt.setObject(2, key.partition.getId());
         return stmt;
     }
 
-    private final SQLStmt updateStmt = new SQLStmt(
-            "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=? and GEO_PARTITION=?");
-
     private PreparedStatement prepareUpdateStmt(Connection conn, Key key, String[] fields) throws SQLException {
+        String tableName = TABLE_NAME + "_" + key.partition.getId();
+        SQLStmt updateStmt = new SQLStmt(
+                "UPDATE " + tableName + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
+                        "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
         PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, updateStmt);
         for (int i = 1; i <= 10; i++) {
             stmt.setString(i, fields[i - 1]);
         }
         stmt.setInt(11, key.name);
-        stmt.setObject(12, key.partition.getId());
         return stmt;
     }
 
-    // Selecting all columns results in too much data to be transferred over the
-    // network and causes a bottleneck there. This obscure the evaluation of the
-    // database systems themselves, so we only select a few columns here.
-    private final SQLStmt scanStmt = new SQLStmt(
-            "SELECT YCSB_KEY, GEO_PARTITION, "
-                    + "LENGTH(FIELD1) + "
-                    + "LENGTH(FIELD2) + "
-                    + "LENGTH(FIELD3) + "
-                    + "LENGTH(FIELD4) + "
-                    + "LENGTH(FIELD5) + "
-                    + "LENGTH(FIELD6) + "
-                    + "LENGTH(FIELD7) + "
-                    + "LENGTH(FIELD8) + "
-                    + "LENGTH(FIELD9) + "
-                    + "LENGTH(FIELD10) AS TOTAL FROM "
-                    + TABLE_NAME + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ? and GEO_PARTITION=?");
-
     private PreparedStatement prepareScanStmt(Connection conn, Key start, int count)
             throws SQLException {
+        String tableName = TABLE_NAME + "_" + start.partition.getId();
+        // Selecting all columns results in too much data to be transferred over the
+        // network and causes a bottleneck there. This obscure the evaluation of the
+        // database systems themselves, so we aggregate the result.
+        SQLStmt scanStmt = new SQLStmt(
+                "SELECT YCSB_KEY, "
+                        + "LENGTH(FIELD1) + "
+                        + "LENGTH(FIELD2) + "
+                        + "LENGTH(FIELD3) + "
+                        + "LENGTH(FIELD4) + "
+                        + "LENGTH(FIELD5) + "
+                        + "LENGTH(FIELD6) + "
+                        + "LENGTH(FIELD7) + "
+                        + "LENGTH(FIELD8) + "
+                        + "LENGTH(FIELD9) + "
+                        + "LENGTH(FIELD10) AS TOTAL FROM "
+                        + tableName + " WHERE YCSB_KEY >= ? AND YCSB_KEY < ?");
         PreparedStatement stmt = BasicProcedures.this.getPreparedStatement(conn, scanStmt, start.name,
                 start.name + count);
-        stmt.setObject(3, start.partition.getId());
         return stmt;
     }
 }

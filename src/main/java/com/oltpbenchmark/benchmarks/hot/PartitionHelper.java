@@ -57,38 +57,58 @@ public class PartitionHelper {
     private void computePostgresPartitions(Connection conn) throws SQLException {
         appendPartition(0);
 
-        boolean hasRegionColumn = false;
-        String checkRegionColumn = """
-                    SELECT column_name
-                    FROM information_schema.columns
-                    WHERE table_name='pg_class' and column_name='relregion';
-                """;
-        try (Statement stmt = conn.createStatement();
-                ResultSet res = stmt.executeQuery(checkRegionColumn)) {
-            hasRegionColumn = res.next();
-        }
-
         String getPartitionName = String.format("""
-                  with partitions as (select i.inhrelid as partoid
-                                      from pg_inherits i
-                                      join pg_class cl on i.inhparent = cl.oid
-                                      where lower(cl.relname) = '%s'),
-                      expressions as (select %s as region
-                                          , pg_get_expr(c.relpartbound, c.oid, true) as expression
-                                      from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
-                  select region
-                      , (regexp_match(expression, 'FOR VALUES IN \\((.+)\\)'))[1] as geo_partition
-                  from expressions
-                  order by region, geo_partition;
-                """, HOTConstants.TABLE_NAME, hasRegionColumn ? "c.relregion" : "0");
+                select relname from pg_class
+                where relname like '%s_%%' and relkind = 'r'
+                order by relregion;
+                """, HOTConstants.TABLE_NAME);
         try (Statement stmt = conn.createStatement();
                 ResultSet res = stmt.executeQuery(getPartitionName)) {
             while (res.next()) {
-                appendPartition(hasRegionColumn ? res.getObject(1) : this.partitions.size());
+                String partitionName = res.getString(1);
+                String region = partitionName.substring(partitionName.lastIndexOf('_') + 1);
+                appendPartition(region);
             }
         }
+        // This is the code to get the partitions of PostgreSQL's partitioned table.
+        // We have switched to a schema that use simple tables instead. This code is
+        // kept here just in case.
+        //
+        // @formatter:off
+        // boolean hasRegionColumn = false;
+        // String checkRegionColumn = """
+        //             SELECT column_name
+        //             FROM information_schema.columns
+        //             WHERE table_name='pg_class' and column_name='relregion';
+        //         """;
+        // try (Statement stmt = conn.createStatement();
+        //         ResultSet res = stmt.executeQuery(checkRegionColumn)) {
+        //     hasRegionColumn = res.next();
+        // }
+
+        // String getPartitionName = String.format("""
+        //           with partitions as (select i.inhrelid as partoid
+        //                               from pg_inherits i
+        //                               join pg_class cl on i.inhparent = cl.oid
+        //                               where lower(cl.relname) = '%s'),
+        //               expressions as (select %s as region
+        //                                   , pg_get_expr(c.relpartbound, c.oid, true) as expression
+        //                               from partitions pt join pg_catalog.pg_class c on pt.partoid = c.oid)
+        //           select region
+        //               , (regexp_match(expression, 'FOR VALUES IN \\((.+)\\)'))[1] as geo_partition
+        //           from expressions
+        //           order by region, geo_partition;
+        //         """, HOTConstants.TABLE_NAME, hasRegionColumn ? "c.relregion" : "0");
+        // try (Statement stmt = conn.createStatement();
+        //         ResultSet res = stmt.executeQuery(getPartitionName)) {
+        //     while (res.next()) {
+        //         appendPartition(hasRegionColumn ? res.getObject(1) : this.partitions.size());
+        //     }
+        // }
+        // @formatter:on
     }
 
+    // TODO: This code is probably broken
     private void computeCitusPartitions(Connection conn) throws SQLException {
         appendPartition(0);
 
@@ -117,6 +137,7 @@ public class PartitionHelper {
         }
     }
 
+    // TODO: This code is probably broken
     private void computeYugabytePartitions(Connection conn) throws SQLException {
         appendPartition("global");
 
@@ -152,14 +173,12 @@ public class PartitionHelper {
             numInsertionSlots = this.partitions.size() - 1;
         }
 
-        String maxKeySql = String.format("""
-                SELECT MAX(ycsb_key)
-                FROM %s
-                WHERE geo_partition = ?;
-                """, HOTConstants.TABLE_NAME);
-        try (PreparedStatement stmt = conn.prepareStatement(maxKeySql)) {
-            for (Partition p : this.partitions) {
-                stmt.setObject(1, p.getId());
+        for (Partition p : this.partitions) {
+            if (p.isEmpty()) {
+                continue;
+            }
+            String maxKeySql = String.format("SELECT MAX(ycsb_key) FROM %s_%s;", HOTConstants.TABLE_NAME, p.getId());
+            try (PreparedStatement stmt = conn.prepareStatement(maxKeySql)) {
                 try (ResultSet res = stmt.executeQuery()) {
                     int maxKey = 0;
                     while (res.next()) {

@@ -69,7 +69,8 @@ class HOTLoader extends Loader<HOTBenchmark> {
     }
 
     private void loadRecords(Connection conn, Object partitionId, int start, int stop) throws SQLException {
-        Table catalog_tbl = benchmark.getCatalog().getTable(HOTConstants.TABLE_NAME);
+        String table_name = String.format("%s_%s", HOTConstants.TABLE_NAME, partitionId);
+        Table catalog_tbl = benchmark.getCatalog().getTable(table_name);
 
         String sql = SQLUtil.getInsertSQL(catalog_tbl, this.getDatabaseType());
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -81,7 +82,6 @@ class HOTLoader extends Loader<HOTBenchmark> {
                 for (int j = 0; j < HOTConstants.NUM_FIELDS; j++) {
                     stmt.setString(col++, TextGenerator.randomStr(rng(), benchmark.fieldSize));
                 }
-                stmt.setObject(col++, partitionId);
 
                 stmt.addBatch();
                 total++;
