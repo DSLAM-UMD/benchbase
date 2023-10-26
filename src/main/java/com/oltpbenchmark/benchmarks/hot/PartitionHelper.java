@@ -33,6 +33,9 @@ public class PartitionHelper {
                 case POSTGRES:
                     computePostgresPartitions(conn);
                     break;
+                case MYSQL:
+                    computeMysqlPartitions(conn);
+                    break;
                 case CITUS:
                     computeCitusPartitions(conn);
                     break;
@@ -106,6 +109,24 @@ public class PartitionHelper {
         //     }
         // }
         // @formatter:on
+    }
+
+    private void computeMysqlPartitions(Connection conn) throws SQLException {
+        appendPartition(0);
+
+        String getPartitionName = String.format("""
+                select table_name from information_schema.tables
+                where table_name like '%s_%%'
+                order by table_name;
+                """, HOTConstants.TABLE_NAME);
+        try (Statement stmt = conn.createStatement();
+                ResultSet res = stmt.executeQuery(getPartitionName)) {
+            while (res.next()) {
+                String partitionName = res.getString(1);
+                String region = partitionName.substring(partitionName.lastIndexOf('_') + 1);
+                appendPartition(region);
+            }
+        }
     }
 
     // TODO: This code is probably broken

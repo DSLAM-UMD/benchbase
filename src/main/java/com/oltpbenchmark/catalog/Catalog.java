@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.catalog;
 
 import java.sql.SQLException;
