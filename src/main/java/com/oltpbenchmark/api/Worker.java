@@ -269,7 +269,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                 if (preExecutionWaitInMillis > 0) {
                     try {
-                        LOG.debug("{} will sleep for {} ms before executing", transactionType.getName(), preExecutionWaitInMillis);
+                        LOG.debug("{} will sleep for {} ms before executing", transactionType.getName(),
+                                preExecutionWaitInMillis);
 
                         Thread.sleep(preExecutionWaitInMillis);
                     } catch (InterruptedException e) {
@@ -297,9 +298,12 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         Phase postPhase = workloadState.getCurrentPhase();
 
                         if (postPhase == null) {
-                            // Need a null check on postPhase since current phase being null is used in WorkloadState
-                            // and ThreadBench as the indication that the benchmark is over. However, there's a race
-                            // condition with postState not being changed from MEASURE to DONE yet, so we entered the
+                            // Need a null check on postPhase since current phase being null is used in
+                            // WorkloadState
+                            // and ThreadBench as the indication that the benchmark is over. However,
+                            // there's a race
+                            // condition with postState not being changed from MEASURE to DONE yet, so we
+                            // entered the
                             // switch. In this scenario, just break from the switch.
                             break;
                         }
@@ -322,13 +326,13 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         // Do nothing
                 }
 
-
                 // wait after transaction if specified
                 long postExecutionWaitInMillis = getPostExecutionWaitInMillis(transactionType);
 
                 if (postExecutionWaitInMillis > 0) {
                     try {
-                        LOG.debug("{} will sleep for {} ms after executing", transactionType.getName(), postExecutionWaitInMillis);
+                        LOG.debug("{} will sleep for {} ms after executing", transactionType.getName(),
+                                postExecutionWaitInMillis);
 
                         Thread.sleep(postExecutionWaitInMillis);
                     } catch (InterruptedException e) {
@@ -345,7 +349,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
         tearDown();
     }
 
-    private TransactionType getTransactionType(SubmittedProcedure pieceOfWork, Phase phase, State state, WorkloadState workloadState) {
+    private TransactionType getTransactionType(SubmittedProcedure pieceOfWork, Phase phase, State state,
+            WorkloadState workloadState) {
         TransactionType type = TransactionType.INVALID;
 
         try {
@@ -380,7 +385,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      * implementing worker should return the TransactionType handle that was
      * executed.
      *
-     * @param databaseType TODO
+     * @param databaseType    TODO
      * @param transactionType TODO
      */
     protected final void doWork(DatabaseType databaseType, TransactionType transactionType) {
@@ -416,7 +421,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     status = this.executeWork(conn, transactionType);
 
                     if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("%s %s completed with status [%s]...", this, transactionType, status.name()));
+                        LOG.debug(String.format("%s %s completed with status [%s]...", this, transactionType,
+                                status.name()));
                     }
 
                     if (LOG.isDebugEnabled()) {
@@ -440,13 +446,17 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     conn.rollback();
 
                     if (isRetryable(ex)) {
-                        LOG.debug(String.format("Retryable SQLException occurred during [%s]... current retry attempt [%d], max retry attempts [%d], sql state [%s], error code [%d].", transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode()), ex);
+                        LOG.debug(String.format(
+                                "Retryable SQLException occurred during [%s]... current retry attempt [%d], max retry attempts [%d], sql state [%s], error code [%d].",
+                                transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode()), ex);
 
                         status = TransactionStatus.RETRY;
 
                         retryCount++;
                     } else {
-                        LOG.warn(String.format("SQLException occurred during [%s] and will not be retried... sql state [%s], error code [%d].", transactionType, ex.getSQLState(), ex.getErrorCode()), ex);
+                        LOG.warn(String.format(
+                                "SQLException occurred during [%s] and will not be retried... sql state [%s], error code [%d].",
+                                transactionType, ex.getSQLState(), ex.getErrorCode()), ex.getMessage());
 
                         status = TransactionStatus.ERROR;
 
@@ -476,7 +486,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
             }
         } catch (SQLException ex) {
-            String msg = String.format("Unexpected SQLException in '%s' when executing '%s' on [%s]", this, transactionType, databaseType.name());
+            String msg = String.format("Unexpected SQLException in '%s' when executing '%s' on [%s]", this,
+                    transactionType, databaseType.name());
 
             throw new RuntimeException(msg, ex);
         }
@@ -495,7 +506,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
         }
 
         // ------------------
-        // MYSQL: https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-error-sqlstates.html
+        // MYSQL:
+        // https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-error-sqlstates.html
         // ------------------
         if (errorCode == 1213 && sqlState.equals("40001")) {
             // MySQL ER_LOCK_DEADLOCK
@@ -529,7 +541,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      * @throws UserAbortException TODO
      * @throws SQLException       TODO
      */
-    protected abstract TransactionStatus executeWork(Connection conn, TransactionType txnType) throws UserAbortException, SQLException;
+    protected abstract TransactionStatus executeWork(Connection conn, TransactionType txnType)
+            throws UserAbortException, SQLException;
 
     /**
      * Called at the end of the test to do any clean up that may be required.
