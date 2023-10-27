@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.benchmarks.tpcc;
 
 import com.oltpbenchmark.benchmarks.tpcc.pojo.Customer;

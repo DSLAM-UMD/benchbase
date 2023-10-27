@@ -18,6 +18,8 @@
 package com.oltpbenchmark.benchmarks.tpcc.procedures;
 
 import com.oltpbenchmark.api.SQLStmt;
+import com.oltpbenchmark.benchmarks.tpcc.PartitionHelper;
+import com.oltpbenchmark.benchmarks.tpcc.PartitionedWId;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCConfig;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
@@ -33,70 +35,9 @@ public class Delivery extends TPCCProcedure {
 
     private static final Logger LOG = LoggerFactory.getLogger(Delivery.class);
 
-    public SQLStmt delivGetOrderIdSQL = new SQLStmt(
-        """
-            SELECT NO_O_ID FROM %s
-             WHERE NO_D_ID = ?
-               AND NO_W_ID = ?
-             ORDER BY NO_O_ID ASC
-             LIMIT 1
-        """.formatted(TPCCConstants.TABLENAME_NEWORDER));
-
-    public SQLStmt delivDeleteNewOrderSQL = new SQLStmt(
-        """
-            DELETE FROM %s
-            WHERE NO_O_ID = ?
-            AND NO_D_ID = ?
-            AND NO_W_ID = ?
-        """.formatted(TPCCConstants.TABLENAME_NEWORDER));
-
-    public SQLStmt delivGetCustIdSQL = new SQLStmt(
-        """
-            SELECT O_C_ID FROM %s
-            WHERE O_ID = ?
-            AND O_D_ID = ?
-            AND O_W_ID = ?
-        """.formatted(TPCCConstants.TABLENAME_OPENORDER));
-
-    public SQLStmt delivUpdateCarrierIdSQL = new SQLStmt(
-    """
-        UPDATE %s
-           SET O_CARRIER_ID = ?
-         WHERE O_ID = ?
-           AND O_D_ID = ?
-           AND O_W_ID = ?
-    """.formatted(TPCCConstants.TABLENAME_OPENORDER));
-
-    public SQLStmt delivUpdateDeliveryDateSQL = new SQLStmt(
-    """
-        UPDATE %s
-           SET OL_DELIVERY_D = ?
-         WHERE OL_O_ID = ?
-           AND OL_D_ID = ?
-           AND OL_W_ID = ?
-    """.formatted(TPCCConstants.TABLENAME_ORDERLINE));
-
-    public SQLStmt delivSumOrderAmountSQL = new SQLStmt(
-    """
-        SELECT SUM(OL_AMOUNT) AS OL_TOTAL
-          FROM %s
-         WHERE OL_O_ID = ?
-           AND OL_D_ID = ?
-           AND OL_W_ID = ?
-    """.formatted(TPCCConstants.TABLENAME_ORDERLINE));
-
-    public SQLStmt delivUpdateCustBalDelivCntSQL = new SQLStmt(
-    """
-        UPDATE %s
-           SET C_BALANCE = C_BALANCE + ?,
-               C_DELIVERY_CNT = C_DELIVERY_CNT + 1
-         WHERE C_W_ID = ?
-           AND C_D_ID = ?
-           AND C_ID = ?
-    """.formatted(TPCCConstants.TABLENAME_CUSTOMER));
-
-
-    public void run(Connection conn, Random gen, int w_id, int numWarehouses, int terminalDistrictLowerID, int terminalDistrictUpperID, TPCCWorker w) throws SQLException {
+    public void run(Connection conn, Random gen, PartitionedWId w_id, PartitionHelper partitions,
+            int terminalDistrictLowerID,
+            int terminalDistrictUpperID, TPCCWorker w) throws SQLException {
 
         int o_carrier_id = TPCCUtil.randomNumber(1, 10, gen);
 
@@ -152,16 +93,23 @@ public class Delivery extends TPCCProcedure {
 
     }
 
-    private Integer getOrderId(Connection conn, int w_id, int d_id) throws SQLException {
-
+    private Integer getOrderId(Connection conn, PartitionedWId w_id, int d_id) throws SQLException {
+        SQLStmt delivGetOrderIdSQL = new SQLStmt(
+                """
+                            SELECT NO_O_ID FROM %s_%s
+                             WHERE NO_D_ID = ?
+                               AND NO_W_ID = ?
+                             ORDER BY NO_O_ID ASC
+                             LIMIT 1
+                        """.formatted(TPCCConstants.TABLENAME_NEWORDER, w_id.partition));
         try (PreparedStatement delivGetOrderId = this.getPreparedStatement(conn, delivGetOrderIdSQL)) {
             delivGetOrderId.setInt(1, d_id);
-            delivGetOrderId.setInt(2, w_id);
+            delivGetOrderId.setInt(2, w_id.id);
 
             try (ResultSet rs = delivGetOrderId.executeQuery()) {
 
                 if (!rs.next()) {
-                    // This district has no new orders.  This can happen but should be rare
+                    // This district has no new orders. This can happen but should be rare
 
                     LOG.warn(String.format("District has no new orders [W_ID=%d, D_ID=%d]", w_id, d_id));
 
@@ -174,11 +122,18 @@ public class Delivery extends TPCCProcedure {
         }
     }
 
-    private void deleteOrder(Connection conn, int w_id, int d_id, int no_o_id) throws SQLException {
+    private void deleteOrder(Connection conn, PartitionedWId w_id, int d_id, int no_o_id) throws SQLException {
+        SQLStmt delivDeleteNewOrderSQL = new SQLStmt(
+                """
+                            DELETE FROM %s_%s
+                            WHERE NO_O_ID = ?
+                            AND NO_D_ID = ?
+                            AND NO_W_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_NEWORDER, w_id.partition));
         try (PreparedStatement delivDeleteNewOrder = this.getPreparedStatement(conn, delivDeleteNewOrderSQL)) {
             delivDeleteNewOrder.setInt(1, no_o_id);
             delivDeleteNewOrder.setInt(2, d_id);
-            delivDeleteNewOrder.setInt(3, w_id);
+            delivDeleteNewOrder.setInt(3, w_id.id);
 
             int result = delivDeleteNewOrder.executeUpdate();
 
@@ -188,23 +143,32 @@ public class Delivery extends TPCCProcedure {
                 // this as SERIALIZABLE instead. I don't *think* that fixing this one
                 // error makes this work with MySQL's default consistency.
                 // Careful auditing would be required.
-                String msg = String.format("NewOrder delete failed. Not running with SERIALIZABLE isolation? [w_id=%d, d_id=%d, no_o_id=%d]", w_id, d_id, no_o_id);
+                String msg = String.format(
+                        "NewOrder delete failed. Not running with SERIALIZABLE isolation? [w_id=%d, d_id=%d, no_o_id=%d]",
+                        w_id, d_id, no_o_id);
                 throw new UserAbortException(msg);
             }
         }
     }
 
-    private int getCustomerId(Connection conn, int w_id, int d_id, int no_o_id) throws SQLException {
-
+    private int getCustomerId(Connection conn, PartitionedWId w_id, int d_id, int no_o_id) throws SQLException {
+        SQLStmt delivGetCustIdSQL = new SQLStmt(
+                """
+                            SELECT O_C_ID FROM %s_%s
+                            WHERE O_ID = ?
+                            AND O_D_ID = ?
+                            AND O_W_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_OPENORDER, w_id.partition));
         try (PreparedStatement delivGetCustId = this.getPreparedStatement(conn, delivGetCustIdSQL)) {
             delivGetCustId.setInt(1, no_o_id);
             delivGetCustId.setInt(2, d_id);
-            delivGetCustId.setInt(3, w_id);
+            delivGetCustId.setInt(3, w_id.id);
 
             try (ResultSet rs = delivGetCustId.executeQuery()) {
 
                 if (!rs.next()) {
-                    String msg = String.format("Failed to retrieve ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id, no_o_id);
+                    String msg = String.format("Failed to retrieve ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id,
+                            d_id, no_o_id);
                     throw new RuntimeException(msg);
                 }
 
@@ -213,49 +177,76 @@ public class Delivery extends TPCCProcedure {
         }
     }
 
-    private void updateCarrierId(Connection conn, int w_id, int o_carrier_id, int d_id, int no_o_id) throws SQLException {
+    private void updateCarrierId(Connection conn, PartitionedWId w_id, int o_carrier_id, int d_id, int no_o_id)
+            throws SQLException {
+        SQLStmt delivUpdateCarrierIdSQL = new SQLStmt(
+                """
+                            UPDATE %s_%s
+                               SET O_CARRIER_ID = ?
+                             WHERE O_ID = ?
+                               AND O_D_ID = ?
+                               AND O_W_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_OPENORDER, w_id.partition));
         try (PreparedStatement delivUpdateCarrierId = this.getPreparedStatement(conn, delivUpdateCarrierIdSQL)) {
             delivUpdateCarrierId.setInt(1, o_carrier_id);
             delivUpdateCarrierId.setInt(2, no_o_id);
             delivUpdateCarrierId.setInt(3, d_id);
-            delivUpdateCarrierId.setInt(4, w_id);
+            delivUpdateCarrierId.setInt(4, w_id.id);
 
             int result = delivUpdateCarrierId.executeUpdate();
 
             if (result != 1) {
-                String msg = String.format("Failed to update ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id, no_o_id);
+                String msg = String.format("Failed to update ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id,
+                        no_o_id);
                 throw new RuntimeException(msg);
             }
         }
     }
 
-    private void updateDeliveryDate(Connection conn, int w_id, int d_id, int no_o_id) throws SQLException {
+    private void updateDeliveryDate(Connection conn, PartitionedWId w_id, int d_id, int no_o_id) throws SQLException {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-
+        SQLStmt delivUpdateDeliveryDateSQL = new SQLStmt(
+                """
+                            UPDATE %s_%s
+                               SET OL_DELIVERY_D = ?
+                             WHERE OL_O_ID = ?
+                               AND OL_D_ID = ?
+                               AND OL_W_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_ORDERLINE, w_id.partition));
         try (PreparedStatement delivUpdateDeliveryDate = this.getPreparedStatement(conn, delivUpdateDeliveryDateSQL)) {
             delivUpdateDeliveryDate.setTimestamp(1, timestamp);
             delivUpdateDeliveryDate.setInt(2, no_o_id);
             delivUpdateDeliveryDate.setInt(3, d_id);
-            delivUpdateDeliveryDate.setInt(4, w_id);
+            delivUpdateDeliveryDate.setInt(4, w_id.id);
 
             int result = delivUpdateDeliveryDate.executeUpdate();
 
             if (result == 0) {
-                String msg = String.format("Failed to update ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id, no_o_id);
+                String msg = String.format("Failed to update ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]", w_id,
+                        d_id, no_o_id);
                 throw new RuntimeException(msg);
             }
         }
     }
 
-    private float getOrderLineTotal(Connection conn, int w_id, int d_id, int no_o_id) throws SQLException {
+    private float getOrderLineTotal(Connection conn, PartitionedWId w_id, int d_id, int no_o_id) throws SQLException {
+        SQLStmt delivSumOrderAmountSQL = new SQLStmt(
+                """
+                            SELECT SUM(OL_AMOUNT) AS OL_TOTAL
+                              FROM %s_%s
+                             WHERE OL_O_ID = ?
+                               AND OL_D_ID = ?
+                               AND OL_W_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_ORDERLINE, w_id.partition));
         try (PreparedStatement delivSumOrderAmount = this.getPreparedStatement(conn, delivSumOrderAmountSQL)) {
             delivSumOrderAmount.setInt(1, no_o_id);
             delivSumOrderAmount.setInt(2, d_id);
-            delivSumOrderAmount.setInt(3, w_id);
+            delivSumOrderAmount.setInt(3, w_id.id);
 
             try (ResultSet rs = delivSumOrderAmount.executeQuery()) {
                 if (!rs.next()) {
-                    String msg = String.format("Failed to retrieve ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id, no_o_id);
+                    String msg = String.format("Failed to retrieve ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]",
+                            w_id, d_id, no_o_id);
                     throw new RuntimeException(msg);
                 }
 
@@ -264,18 +255,30 @@ public class Delivery extends TPCCProcedure {
         }
     }
 
-    private void updateBalanceAndDelivery(Connection conn, int w_id, int d_id, int c_id, float orderLineTotal) throws SQLException {
-
-        try (PreparedStatement delivUpdateCustBalDelivCnt = this.getPreparedStatement(conn, delivUpdateCustBalDelivCntSQL)) {
+    private void updateBalanceAndDelivery(Connection conn, PartitionedWId w_id, int d_id, int c_id,
+            float orderLineTotal)
+            throws SQLException {
+        SQLStmt delivUpdateCustBalDelivCntSQL = new SQLStmt(
+                """
+                            UPDATE %s_%s
+                               SET C_BALANCE = C_BALANCE + ?,
+                                   C_DELIVERY_CNT = C_DELIVERY_CNT + 1
+                             WHERE C_W_ID = ?
+                               AND C_D_ID = ?
+                               AND C_ID = ?
+                        """.formatted(TPCCConstants.TABLENAME_CUSTOMER, w_id.partition));
+        try (PreparedStatement delivUpdateCustBalDelivCnt = this.getPreparedStatement(conn,
+                delivUpdateCustBalDelivCntSQL)) {
             delivUpdateCustBalDelivCnt.setBigDecimal(1, BigDecimal.valueOf(orderLineTotal));
-            delivUpdateCustBalDelivCnt.setInt(2, w_id);
+            delivUpdateCustBalDelivCnt.setInt(2, w_id.id);
             delivUpdateCustBalDelivCnt.setInt(3, d_id);
             delivUpdateCustBalDelivCnt.setInt(4, c_id);
 
             int result = delivUpdateCustBalDelivCnt.executeUpdate();
 
             if (result == 0) {
-                String msg = String.format("Failed to update CUSTOMER record [W_ID=%d, D_ID=%d, C_ID=%d]", w_id, d_id, c_id);
+                String msg = String.format("Failed to update CUSTOMER record [W_ID=%d, D_ID=%d, C_ID=%d]", w_id, d_id,
+                        c_id);
                 throw new RuntimeException(msg);
             }
         }

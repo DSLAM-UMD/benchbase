@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.benchmarks.tpcc;
 
 import com.oltpbenchmark.WorkloadConfiguration;
@@ -23,6 +22,8 @@ import com.oltpbenchmark.api.BenchmarkModule;
 import com.oltpbenchmark.api.Loader;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.benchmarks.tpcc.procedures.NewOrder;
+
+import org.apache.commons.configuration2.XMLConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,8 +35,28 @@ import java.util.List;
 public class TPCCBenchmark extends BenchmarkModule {
     private static final Logger LOG = LoggerFactory.getLogger(TPCCBenchmark.class);
 
+    final int region;
+    final boolean loadAll;
+
     public TPCCBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
+
+        int region = 0;
+        boolean loadAll = false;
+
+        XMLConfiguration xmlConfig = workConf.getXmlConfig();
+        if (xmlConfig != null) {
+            if (xmlConfig.containsKey("region")) {
+                region = xmlConfig.getInt("region");
+            }
+
+            if (xmlConfig.containsKey("loadall")) {
+                loadAll = xmlConfig.getBoolean("loadall");
+            }
+        }
+
+        this.region = region;
+        this.loadAll = loadAll;
     }
 
     @Override
@@ -48,7 +69,11 @@ public class TPCCBenchmark extends BenchmarkModule {
         List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
 
         try {
-            List<TPCCWorker> terminals = createTerminals();
+            PartitionHelper partitionHelper = new PartitionHelper(this);
+
+            LOG.info("Number of partitions: {}", partitionHelper.getPartitions().size());
+
+            List<TPCCWorker> terminals = createTerminals(partitionHelper);
             workers.addAll(terminals);
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
@@ -59,13 +84,27 @@ public class TPCCBenchmark extends BenchmarkModule {
 
     @Override
     protected Loader<TPCCBenchmark> makeLoaderImpl() {
-        return new TPCCLoader(this);
+        try {
+            PartitionHelper partitionHelper = new PartitionHelper(this);
+            String[] loadedPartitions;
+
+            if (this.loadAll) {
+                loadedPartitions = partitionHelper.getPartitions().toArray(String[]::new);
+            } else {
+                loadedPartitions = new String[] { partitionHelper.getPartition(this.region) };
+            }
+
+            return new TPCCLoader(this, loadedPartitions);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    protected List<TPCCWorker> createTerminals() throws SQLException {
+    protected List<TPCCWorker> createTerminals(PartitionHelper partitions) throws SQLException {
 
         TPCCWorker[] terminals = new TPCCWorker[workConf.getTerminals()];
 
+        String partition = partitions.getPartition(this.region);
         int numWarehouses = (int) workConf.getScaleFactor();
         if (numWarehouses <= 0) {
             numWarehouses = 1;
@@ -85,14 +124,15 @@ public class TPCCBenchmark extends BenchmarkModule {
             int lowerTerminalId = (int) (w * terminalsPerWarehouse);
             int upperTerminalId = (int) ((w + 1) * terminalsPerWarehouse);
             // protect against double rounding errors
-            int w_id = w + 1;
-            if (w_id == numWarehouses) {
+            PartitionedWId w_id = new PartitionedWId(partition, w + 1);
+            if (w_id.id == numWarehouses) {
                 upperTerminalId = numTerminals;
             }
             int numWarehouseTerminals = upperTerminalId - lowerTerminalId;
 
             if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("w_id %d = %d terminals [lower=%d / upper%d]", w_id, numWarehouseTerminals, lowerTerminalId, upperTerminalId));
+                LOG.debug(String.format("w_id %d = %d terminals [lower=%d / upper%d]", w_id, numWarehouseTerminals,
+                        lowerTerminalId, upperTerminalId));
             }
 
             final double districtsPerTerminal = TPCCConfig.configDistPerWhse / (double) numWarehouseTerminals;
@@ -104,15 +144,15 @@ public class TPCCBenchmark extends BenchmarkModule {
                 }
                 lowerDistrictId += 1;
 
-                TPCCWorker terminal = new TPCCWorker(this, workerId++, w_id, lowerDistrictId, upperDistrictId, numWarehouses);
+                TPCCWorker terminal = new TPCCWorker(this, workerId++, w_id, lowerDistrictId,
+                        upperDistrictId,
+                        partitions);
                 terminals[lowerTerminalId + terminalId] = terminal;
             }
 
         }
 
-
         return Arrays.asList(terminals);
     }
-
 
 }

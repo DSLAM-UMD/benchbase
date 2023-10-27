@@ -15,15 +15,14 @@
  *
  */
 
-
 package com.oltpbenchmark.benchmarks.tpcc;
 
 import java.text.SimpleDateFormat;
 
 public final class TPCCConfig {
 
-    public final static String[] nameTokens = {"BAR", "OUGHT", "ABLE", "PRI",
-            "PRES", "ESE", "ANTI", "CALLY", "ATION", "EING"};
+    public final static String[] nameTokens = { "BAR", "OUGHT", "ABLE", "PRI",
+            "PRES", "ESE", "ANTI", "CALLY", "ATION", "EING" };
 
     public final static String terminalPrefix = "Term-";
 

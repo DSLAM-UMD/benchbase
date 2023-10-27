@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.benchmarks.tpcc;
 
 import com.oltpbenchmark.api.Procedure.UserAbortException;
@@ -34,7 +33,7 @@ public class TPCCWorker extends Worker<TPCCBenchmark> {
 
     private static final Logger LOG = LoggerFactory.getLogger(TPCCWorker.class);
 
-    private final int terminalWarehouseID;
+    private final PartitionedWId terminalWarehouseID;
     /**
      * Forms a range [lower, upper] (inclusive).
      */
@@ -42,32 +41,32 @@ public class TPCCWorker extends Worker<TPCCBenchmark> {
     private final int terminalDistrictUpperID;
     private final Random gen = new Random();
 
-    private final int numWarehouses;
+    private final PartitionHelper partitions;
 
     public TPCCWorker(TPCCBenchmark benchmarkModule, int id,
-                      int terminalWarehouseID, int terminalDistrictLowerID,
-                      int terminalDistrictUpperID, int numWarehouses) {
+            PartitionedWId terminalWarehouseID, int terminalDistrictLowerID,
+            int terminalDistrictUpperID, PartitionHelper partitions) {
         super(benchmarkModule, id);
 
         this.terminalWarehouseID = terminalWarehouseID;
         this.terminalDistrictLowerID = terminalDistrictLowerID;
         this.terminalDistrictUpperID = terminalDistrictUpperID;
 
-
-        this.numWarehouses = numWarehouses;
+        this.partitions = partitions;
     }
 
     /**
      * Executes a single TPCC transaction of type transactionType.
      */
     @Override
-    protected TransactionStatus executeWork(Connection conn, TransactionType nextTransaction) throws UserAbortException, SQLException {
+    protected TransactionStatus executeWork(Connection conn, TransactionType nextTransaction)
+            throws UserAbortException, SQLException {
         try {
             TPCCProcedure proc = (TPCCProcedure) this.getProcedure(nextTransaction.getProcedureClass());
-            proc.run(conn, gen, terminalWarehouseID, numWarehouses,
+            proc.run(conn, gen, terminalWarehouseID, partitions,
                     terminalDistrictLowerID, terminalDistrictUpperID, this);
         } catch (ClassCastException ex) {
-            //fail gracefully
+            // fail gracefully
             LOG.error("We have been invoked with an INVALID transactionType?!", ex);
             throw new RuntimeException("Bad transaction type = " + nextTransaction);
         }

@@ -55,6 +55,7 @@ public class Partition {
         return latest - offset;
     }
 
+    @Override
     public String toString() {
         return this.id + ": [" + this.from + ", " + this.to + ") Insert: " + this.insertCounter.lastInt();
     }

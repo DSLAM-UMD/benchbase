@@ -18,6 +18,8 @@
 package com.oltpbenchmark.benchmarks.tpcc.procedures;
 
 import com.oltpbenchmark.api.Procedure;
+import com.oltpbenchmark.benchmarks.tpcc.PartitionHelper;
+import com.oltpbenchmark.benchmarks.tpcc.PartitionedWId;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCWorker;
 
 import java.sql.Connection;
@@ -26,6 +28,8 @@ import java.util.Random;
 
 public abstract class TPCCProcedure extends Procedure {
 
-    public abstract void run(Connection conn, Random gen, int terminalWarehouseID, int numWarehouses, int terminalDistrictLowerID, int terminalDistrictUpperID, TPCCWorker w) throws SQLException;
+    public abstract void run(Connection conn, Random gen, PartitionedWId terminalWarehouseID,
+            PartitionHelper partitions,
+            int terminalDistrictLowerID, int terminalDistrictUpperID, TPCCWorker w) throws SQLException;
 
 }
