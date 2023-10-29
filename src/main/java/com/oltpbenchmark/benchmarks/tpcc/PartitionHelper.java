@@ -19,6 +19,8 @@ public class PartitionHelper {
         this.numWarehouses = TPCCConfig.configWhseCount * (int) workloadConf.getScaleFactor();
         this.partitions = new ArrayList<>();
 
+        partitions.add(null);
+
         try (Connection conn = benchmark.makeConnection()) {
             DatabaseType dbType = workloadConf.getDatabaseType();
             switch (dbType) {
@@ -39,7 +41,7 @@ public class PartitionHelper {
     }
 
     public String getPartition(int region) {
-        return partitions.get(region - 1);
+        return partitions.get(region);
     }
 
     public List<String> getPartitions() {

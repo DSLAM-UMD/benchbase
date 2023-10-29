@@ -64,7 +64,7 @@ public class NewOrder extends TPCCProcedure {
 
                 String remotePartition;
                 do {
-                    remotePartition = partitions.getPartition(TPCCUtil.randomNumber(1, numPartitions, gen));
+                    remotePartition = partitions.getPartition(TPCCUtil.randomNumber(1, numPartitions - 1, gen));
                 } while (remotePartition == terminalWarehouseID.partition && numPartitions > 1);
 
                 int remoteWarehouse;

@@ -45,7 +45,8 @@ public abstract class LoaderThread implements Runnable {
             load(conn);
         } catch (SQLException ex) {
             SQLException next_ex = ex.getNextException();
-            String msg = String.format("Unexpected error when loading %s database", benchmarkModule.getBenchmarkName().toUpperCase());
+            String msg = String.format("Unexpected error when loading %s database",
+                    benchmarkModule.getBenchmarkName().toUpperCase());
             LOG.error(msg, next_ex);
             throw new RuntimeException(ex);
         } finally {
@@ -62,12 +63,12 @@ public abstract class LoaderThread implements Runnable {
     public abstract void load(Connection conn) throws SQLException;
 
     public void beforeLoad() {
-        // useful for implementing waits for countdown latches, this ensures we open the connection right before its used to avoid stale connections
+        // useful for implementing waits for countdown latches, this ensures we open the
+        // connection right before its used to avoid stale connections
     }
 
     public void afterLoad() {
         // useful for counting down latches
     }
-
 
 }

@@ -4,20 +4,26 @@
     <!-- Connection details -->
     <type>POSTGRES</type>
     <driver>org.postgresql.Driver</driver>
-    <url>jdbc:postgresql://localhost:5432/benchbase?sslmode=disable&amp;ApplicationName=tpcc&amp;reWriteBatchedInserts=true</url>
-    <username>admin</username>
-    <password>password</password>
+    <url>jdbc:postgresql://localhost:55432/postgres?sslmode=disable&amp;ApplicationName=tpcc&amp;reWriteBatchedInserts=true</url>
+    <username>cloud_admin</username>
+    <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
     <batchsize>128</batchsize>
 
     <!-- Scale factor is the number of warehouses in TPCC -->
     <scalefactor>1</scalefactor>
 
+    <!-- Load data in all partitions -->
+    <loadall>false</loadall>
+
+    <!-- Current region -->
+    <region>0</region>
+
     <!-- The workload -->
     <terminals>1</terminals>
     <works>
         <work>
-            <time>60</time>
+            <time>10</time>
             <rate>10000</rate>
             <weights>45,43,4,4,4</weights>
         </work>
