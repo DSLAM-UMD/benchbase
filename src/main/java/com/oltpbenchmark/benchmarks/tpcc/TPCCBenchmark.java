@@ -101,6 +101,9 @@ public class TPCCBenchmark extends BenchmarkModule {
     }
 
     protected List<TPCCWorker> createTerminals(PartitionHelper partitions) throws SQLException {
+        if (this.region == 0) {
+            return new ArrayList<>();
+        }
 
         TPCCWorker[] terminals = new TPCCWorker[workConf.getTerminals()];
 
