@@ -199,14 +199,13 @@ public class PartitionHelper {
                 continue;
             }
             String maxKeySql = String.format("SELECT MAX(ycsb_key) FROM %s_%s;", HOTConstants.TABLE_NAME, p.getId());
-            try (PreparedStatement stmt = conn.prepareStatement(maxKeySql)) {
-                try (ResultSet res = stmt.executeQuery()) {
-                    int maxKey = 0;
-                    while (res.next()) {
-                        maxKey = res.getInt(1);
-                    }
-                    p.setInsertCounterStartFromMaxKey(numInsertionSlots, maxKey);
+            try (PreparedStatement stmt = conn.prepareStatement(maxKeySql);
+                    ResultSet res = stmt.executeQuery()) {
+                int maxKey = 0;
+                while (res.next()) {
+                    maxKey = res.getInt(1);
                 }
+                p.setInsertCounterStartFromMaxKey(numInsertionSlots, maxKey);
             }
         }
         this.partitions = Collections.unmodifiableList(this.partitions);

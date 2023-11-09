@@ -85,6 +85,11 @@ public class DBWorkload {
             intervalMonitor = Integer.parseInt(argsLine.getOptionValue("im"));
         }
 
+        // Run the Prometheus metrics pusher
+        if (argsLine.hasOption("ma")) {
+            PrometheusMetrics.run(argsLine.getOptionValue("ma"));
+        }
+
         // -------------------------------------------------------------------
         // GET PLUGIN LIST
         // -------------------------------------------------------------------
@@ -505,6 +510,7 @@ public class DBWorkload {
         options.addOption("d", "directory", true, "Base directory for the result files, default is current directory");
         options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
         options.addOption("jh", "json-histograms", true, "Export histograms to JSON file");
+        options.addOption("ma", "metrics-address", true, "Prometheus PushGateway address");
         return options;
     }
 

@@ -23,6 +23,9 @@ import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.Histogram;
+
+import io.prometheus.client.Histogram.Timer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -310,6 +313,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         if (preState == MEASURE && postPhase.getId() == prePhase.getId()) {
                             latencies.addLatency(transactionType.getId(), start, end, this.id, prePhase.getId());
                             intervalRequests.incrementAndGet();
+
+                            PrometheusMetrics.TXN_DURATION.labels(this.benchmark.getBenchmarkName(),
+                                    transactionType.getName())
+                                    .observe((end - start) / 1_000_000_000.0);
                         }
                         if (prePhase.isLatencyRun()) {
                             workloadState.startColdQuery();
@@ -429,7 +436,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         LOG.debug(String.format("%s %s committing...", this, transactionType));
                     }
 
-                    conn.commit();
+                    try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(this.benchmark.getBenchmarkName(),
+                            transactionType.getName(), "commit").startTimer()) {
+                        conn.commit();
+                    }
 
                     break;
 
@@ -482,6 +492,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         case ERROR -> this.txnErrors.put(transactionType);
                     }
 
+                    PrometheusMetrics.TXNS.labels(this.benchmark.getBenchmarkName(), transactionType.getName(),
+                            status.name()).inc();
                 }
 
             }

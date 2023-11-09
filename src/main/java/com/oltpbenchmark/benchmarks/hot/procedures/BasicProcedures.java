@@ -17,8 +17,11 @@
 
 package com.oltpbenchmark.benchmarks.hot.procedures;
 
+import com.oltpbenchmark.PrometheusMetrics;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
+
+import io.prometheus.client.Histogram.Timer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -31,53 +34,72 @@ import static com.oltpbenchmark.benchmarks.hot.HOTConstants.TABLE_NAME;
 
 class BasicProcedures extends Procedure {
     protected void insert(Connection conn, Key key, String[] vals) throws SQLException {
-        try (PreparedStatement stmt = this.prepareInsertStmt(conn, key, vals)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "hot",
+                this.getProcedureName(),
+                "insert").startTimer();
+                PreparedStatement stmt = this.prepareInsertStmt(conn, key, vals)) {
             stmt.executeUpdate();
         }
     }
 
     protected void read(Connection conn, Key key, String[] results) throws SQLException {
-        try (PreparedStatement stmt = this.prepareReadStmt(conn, key)) {
-            try (ResultSet r = stmt.executeQuery()) {
-                while (r.next()) {
-                    for (int i = 0; i < results.length; i++) {
-                        results[i] = r.getString(i + 1);
-                    }
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "hot",
+                this.getProcedureName(),
+                "read").startTimer();
+                PreparedStatement stmt = this.prepareReadStmt(conn, key);
+                ResultSet r = stmt.executeQuery()) {
+            while (r.next()) {
+                for (int i = 0; i < results.length; i++) {
+                    results[i] = r.getString(i + 1);
                 }
             }
         }
     }
 
     protected void update(Connection conn, Key key, String[] fields) throws SQLException {
-        try (PreparedStatement stmt = this.prepareUpdateStmt(conn, key, fields)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "hot",
+                this.getProcedureName(),
+                "update").startTimer();
+                PreparedStatement stmt = this.prepareUpdateStmt(conn, key, fields)) {
             stmt.executeUpdate();
         }
     }
 
     protected void scan(Connection conn, Key start, int count, List<String[]> results) throws SQLException {
-        try (PreparedStatement stmt = this.prepareScanStmt(conn, start, count)) {
-            try (ResultSet r = stmt.executeQuery()) {
-                while (r.next()) {
-                    ResultSetMetaData meta = r.getMetaData();
-                    String[] data = new String[meta.getColumnCount()];
-                    for (int i = 0; i < data.length; i++) {
-                        data[i] = r.getString(i + 1);
-                    }
-                    results.add(data);
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "hot",
+                this.getProcedureName(),
+                "scan").startTimer();
+                PreparedStatement stmt = this.prepareScanStmt(conn, start, count);
+                ResultSet r = stmt.executeQuery()) {
+            while (r.next()) {
+                ResultSetMetaData meta = r.getMetaData();
+                String[] data = new String[meta.getColumnCount()];
+                for (int i = 0; i < data.length; i++) {
+                    data[i] = r.getString(i + 1);
                 }
+                results.add(data);
             }
         }
+
     }
 
     protected void readModifyWrite(Connection conn, Key key, String[] fields,
             String[] results)
             throws SQLException {
-        try (PreparedStatement stmt = this.prepareReadStmt(conn, key)) {
-            try (ResultSet r = stmt.executeQuery()) {
-                while (r.next()) {
-                    for (int i = 0; i < results.length; i++) {
-                        results[i] = r.getString(i + 1);
-                    }
+        try (
+                Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                        "hot",
+                        this.getProcedureName(),
+                        "read-modify-write").startTimer();
+                PreparedStatement stmt = this.prepareReadStmt(conn, key);
+                ResultSet r = stmt.executeQuery()) {
+            while (r.next()) {
+                for (int i = 0; i < results.length; i++) {
+                    results[i] = r.getString(i + 1);
                 }
             }
         }

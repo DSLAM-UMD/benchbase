@@ -39,12 +39,12 @@ public class HOTBenchmark extends BenchmarkModule {
     /**
      * The length in characters of each field
      */
-    protected final int fieldSize;
-    protected final int region;
-    protected final int hot;
-    protected final int keysPerTxn;
-    protected final int maxScanCount;
-    protected final boolean loadAll;
+    final int fieldSize;
+    final int region;
+    final int hot;
+    final int keysPerTxn;
+    final int maxScanCount;
+    final boolean loadAll;
 
     public HOTBenchmark(WorkloadConfiguration workConf) {
         super(workConf);
