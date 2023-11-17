@@ -17,8 +17,11 @@
 
 package com.oltpbenchmark.benchmarks.ycsb.procedures;
 
+import com.oltpbenchmark.PrometheusMetrics;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
+
+import io.prometheus.client.Histogram.Timer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,11 +33,14 @@ public class UpdateRecord extends Procedure {
 
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?"
-    );
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
 
     public void run(Connection conn, int keyname, String[] vals) throws SQLException {
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "ycsb",
+                this.getProcedureName(),
+                "update").startTimer();
+                PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
 
             stmt.setInt(11, keyname);
             for (int i = 0; i < vals.length; i++) {
@@ -44,4 +50,3 @@ public class UpdateRecord extends Procedure {
         }
     }
 }
-

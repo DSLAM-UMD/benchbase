@@ -17,9 +17,12 @@
 
 package com.oltpbenchmark.benchmarks.ycsb.procedures;
 
+import com.oltpbenchmark.PrometheusMetrics;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.ycsb.YCSBConstants;
+
+import io.prometheus.client.Histogram.Timer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,18 +33,20 @@ import static com.oltpbenchmark.benchmarks.ycsb.YCSBConstants.TABLE_NAME;
 
 public class ReadModifyWriteRecord extends Procedure {
     public final SQLStmt selectStmt = new SQLStmt(
-            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? FOR UPDATE"
-    );
+            "SELECT * FROM " + TABLE_NAME + " where YCSB_KEY=? FOR UPDATE");
     public final SQLStmt updateAllStmt = new SQLStmt(
             "UPDATE " + TABLE_NAME + " SET FIELD1=?,FIELD2=?,FIELD3=?,FIELD4=?,FIELD5=?," +
-                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?"
-    );
+                    "FIELD6=?,FIELD7=?,FIELD8=?,FIELD9=?,FIELD10=? WHERE YCSB_KEY=?");
 
-    //FIXME: The value in ysqb is a byteiterator
+    // FIXME: The value in ysqb is a byteiterator
     public void run(Connection conn, int keyname, String[] fields, String[] results) throws SQLException {
 
         // Fetch it!
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "ycsb",
+                this.getProcedureName(),
+                "read").startTimer();
+                PreparedStatement stmt = this.getPreparedStatement(conn, selectStmt)) {
             stmt.setInt(1, keyname);
             try (ResultSet r = stmt.executeQuery()) {
                 while (r.next()) {
@@ -54,7 +59,11 @@ public class ReadModifyWriteRecord extends Procedure {
         }
 
         // Update that mofo
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "ycsb",
+                this.getProcedureName(),
+                "write").startTimer();
+                PreparedStatement stmt = this.getPreparedStatement(conn, updateAllStmt)) {
             stmt.setInt(11, keyname);
 
             for (int i = 0; i < fields.length; i++) {

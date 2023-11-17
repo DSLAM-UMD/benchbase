@@ -17,8 +17,11 @@
 
 package com.oltpbenchmark.benchmarks.ycsb.procedures;
 
+import com.oltpbenchmark.PrometheusMetrics;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.SQLStmt;
+
+import io.prometheus.client.Histogram.Timer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,12 +31,15 @@ import static com.oltpbenchmark.benchmarks.ycsb.YCSBConstants.TABLE_NAME;
 
 public class DeleteRecord extends Procedure {
     public final SQLStmt deleteStmt = new SQLStmt(
-            "DELETE FROM " + TABLE_NAME + " where YCSB_KEY=?"
-    );
+            "DELETE FROM " + TABLE_NAME + " where YCSB_KEY=?");
 
-    //FIXME: The value in ysqb is a byteiterator
+    // FIXME: The value in ysqb is a byteiterator
     public void run(Connection conn, int keyname) throws SQLException {
-        try (PreparedStatement stmt = this.getPreparedStatement(conn, deleteStmt)) {
+        try (Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
+                "ycsb",
+                this.getProcedureName(),
+                "delete").startTimer();
+                PreparedStatement stmt = this.getPreparedStatement(conn, deleteStmt)) {
             stmt.setInt(1, keyname);
             stmt.executeUpdate();
         }
