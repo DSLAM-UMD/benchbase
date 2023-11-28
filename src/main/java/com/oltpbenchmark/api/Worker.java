@@ -283,7 +283,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                 long start = System.nanoTime();
 
-                doWork(configuration.getDatabaseType(), transactionType);
+                TransactionStatus status = doWork(configuration.getDatabaseType(), transactionType);
 
                 long end = System.nanoTime();
 
@@ -315,7 +315,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                             intervalRequests.incrementAndGet();
 
                             PrometheusMetrics.TXN_DURATION.labels(this.benchmark.getBenchmarkName(),
-                                    transactionType.getName())
+                                    transactionType.getName(),
+                                    status.name())
                                     .observe((end - start) / 1_000_000_000.0);
                         }
                         if (prePhase.isLatencyRun()) {
@@ -395,7 +396,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      * @param databaseType    TODO
      * @param transactionType TODO
      */
-    protected final void doWork(DatabaseType databaseType, TransactionType transactionType) {
+    protected final TransactionStatus doWork(DatabaseType databaseType, TransactionType transactionType) {
+        TransactionStatus finalStatus = TransactionStatus.UNKNOWN;
 
         try {
             int retryCount = 0;
@@ -494,6 +496,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                     PrometheusMetrics.TXNS.labels(this.benchmark.getBenchmarkName(), transactionType.getName(),
                             status.name()).inc();
+
+                    finalStatus = status;
                 }
 
             }
@@ -503,7 +507,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
             throw new RuntimeException(msg, ex);
         }
-
+        return finalStatus;
     }
 
     private boolean isRetryable(SQLException ex) {
