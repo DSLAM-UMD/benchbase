@@ -60,15 +60,15 @@ public class Partition {
         return this.id + ": [" + this.from + ", " + this.to + ") Insert: " + this.insertCounter.lastInt();
     }
 
-    public void setInsertCounterStartFromMaxKey(int numSlots, int maxKey) {
-        int start = (maxKey - to) / numSlots + 1;
+    public void setInsertCounterStartFromMaxKey(int numStrips, int maxKey) {
+        int start = (maxKey - to) / numStrips + 1;
         this.insertCounter = new CounterGenerator(start);
     }
 
-    public int nextInsert(int numSlots, int slot) {
+    public int nextInsert(int numStrips, int slot) {
         checkEmpty();
         int insertCount = this.insertCounter.nextInt();
-        return to + insertCount * numSlots + slot;
+        return to + insertCount * numStrips + slot;
     }
 
     private int next(Random rng) {

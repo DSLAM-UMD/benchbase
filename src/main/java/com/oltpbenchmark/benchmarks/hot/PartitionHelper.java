@@ -185,13 +185,17 @@ public class PartitionHelper {
     }
 
     private void finalizePartitions(Connection conn) throws SQLException {
-        int numInsertionSlots = 1;
+        // The key space in each partition is divided into different strips. Each strip
+        // is spaced out by the number of partitions (e.g. one strip of a 3-partition
+        // key space will be 0, 3, 6, ...). Client from partition i will only insert
+        // into strip i so that the partitions will not interfere with each other.
+        int numInsertionStrips = 1;
         if (this.partitions.size() > 1) {
             // If there are more than 1 partition, make the first partition the global
             // partition, which should not have any data.
             Partition p0 = this.partitions.remove(0);
             this.partitions.add(0, new Partition(p0.getId()));
-            numInsertionSlots = this.partitions.size() - 1;
+            numInsertionStrips = this.partitions.size() - 1;
         }
 
         for (Partition p : this.partitions) {
@@ -201,11 +205,11 @@ public class PartitionHelper {
             String maxKeySql = String.format("SELECT MAX(ycsb_key) FROM %s_%s;", HOTConstants.TABLE_NAME, p.getId());
             try (PreparedStatement stmt = conn.prepareStatement(maxKeySql);
                     ResultSet res = stmt.executeQuery()) {
-                int maxKey = 0;
+                int maxKey = p.getTo();
                 while (res.next()) {
-                    maxKey = res.getInt(1);
+                    maxKey = Math.max(maxKey, res.getInt(1));
                 }
-                p.setInsertCounterStartFromMaxKey(numInsertionSlots, maxKey);
+                p.setInsertCounterStartFromMaxKey(numInsertionStrips, maxKey);
             }
         }
         this.partitions = Collections.unmodifiableList(this.partitions);

@@ -84,7 +84,6 @@ class BasicProcedures extends Procedure {
                 results.add(data);
             }
         }
-
     }
 
     protected void readModifyWrite(Connection conn, Key key, String[] fields,

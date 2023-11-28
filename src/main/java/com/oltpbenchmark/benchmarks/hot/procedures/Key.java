@@ -11,8 +11,8 @@ public class Key {
     this.partition = partition;
   }
 
-  public Key convertToInsert(int numSlots, int slot) {
-    this.name = this.partition.nextInsert(numSlots, slot);
+  public Key convertToInsert(int numStrips, int slot) {
+    this.name = this.partition.nextInsert(numStrips, slot);
     return this;
   }
 }

@@ -28,6 +28,10 @@ import com.oltpbenchmark.util.TextGenerator;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Map;
+
+import static java.util.Map.entry;
+import static java.util.AbstractMap.SimpleEntry;
 
 class HOTWorker extends Worker<HOTBenchmark> {
     private final char[] data;
@@ -38,66 +42,12 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final int keysPerTxn;
     private final int maxScanCount;
 
-    private final WorkloadA workloadA;
-    private final static Class<?>[] workloadAs = new Class[] {
-            WorkloadA.class,
-            WorkloadA1.class,
-            WorkloadA2.class,
-            WorkloadA3.class,
-            WorkloadA4.class,
-            WorkloadA5.class,
-            WorkloadA6.class
-    };
-    private final WorkloadB workloadB;
-    private final static Class<?>[] workloadBs = new Class[] {
-            WorkloadB.class,
-            WorkloadB1.class,
-            WorkloadB2.class,
-            WorkloadB3.class,
-            WorkloadB4.class,
-            WorkloadB5.class,
-            WorkloadB6.class
-    };
-    private final WorkloadC workloadC;
-    private final static Class<?>[] workloadCs = new Class[] {
-            WorkloadC.class,
-            WorkloadC1.class,
-            WorkloadC2.class,
-            WorkloadC3.class,
-            WorkloadC4.class,
-            WorkloadC5.class,
-            WorkloadC6.class
-    };
-    private final WorkloadD workloadD;
-    private final static Class<?>[] workloadDs = new Class[] {
-            WorkloadD.class,
-            WorkloadD1.class,
-            WorkloadD2.class,
-            WorkloadD3.class,
-            WorkloadD4.class,
-            WorkloadD5.class,
-            WorkloadD6.class
-    };
-    private final WorkloadE workloadE;
-    private final static Class<?>[] workloadEs = new Class[] {
-            WorkloadE.class,
-            WorkloadE1.class,
-            WorkloadE2.class,
-            WorkloadE3.class,
-            WorkloadE4.class,
-            WorkloadE5.class,
-            WorkloadE6.class
-    };
-    private final WorkloadF workloadF;
-    private final static Class<?>[] workloadFs = new Class[] {
-            WorkloadF.class,
-            WorkloadF1.class,
-            WorkloadF2.class,
-            WorkloadF3.class,
-            WorkloadF4.class,
-            WorkloadF5.class,
-            WorkloadF6.class
-    };
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadA>> workloadAs;
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadB>> workloadBs;
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadC>> workloadCs;
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadD>> workloadDs;
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadE>> workloadEs;
+    private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadF>> workloadFs;
 
     public HOTWorker(HOTBenchmark benchmarkModule, int id, Partition homePartition, Partition[] otherPartitions) {
         super(benchmarkModule, id);
@@ -115,12 +65,54 @@ class HOTWorker extends Worker<HOTBenchmark> {
         // config file. Any of the ReadModifyWriteX classes can be used though and they
         // are
         // all the same.
-        this.workloadA = this.getProcedure(WorkloadA1.class);
-        this.workloadB = this.getProcedure(WorkloadB1.class);
-        this.workloadC = this.getProcedure(WorkloadC1.class);
-        this.workloadD = this.getProcedure(WorkloadD1.class);
-        this.workloadE = this.getProcedure(WorkloadE1.class);
-        this.workloadF = this.getProcedure(WorkloadF1.class);
+        this.workloadAs = Map.ofEntries(
+                makeEntry(WorkloadA1.class, 1),
+                makeEntry(WorkloadA2.class, 2),
+                makeEntry(WorkloadA3.class, 3),
+                makeEntry(WorkloadA4.class, 4),
+                makeEntry(WorkloadA5.class, 5),
+                makeEntry(WorkloadA6.class, 6));
+        this.workloadBs = Map.ofEntries(
+                makeEntry(WorkloadB1.class, 1),
+                makeEntry(WorkloadB2.class, 2),
+                makeEntry(WorkloadB3.class, 3),
+                makeEntry(WorkloadB4.class, 4),
+                makeEntry(WorkloadB5.class, 5),
+                makeEntry(WorkloadB6.class, 6));
+        this.workloadCs = Map.ofEntries(
+                makeEntry(WorkloadC1.class, 1),
+                makeEntry(WorkloadC2.class, 2),
+                makeEntry(WorkloadC3.class, 3),
+                makeEntry(WorkloadC4.class, 4),
+                makeEntry(WorkloadC5.class, 5),
+                makeEntry(WorkloadC6.class, 6));
+        this.workloadDs = Map.ofEntries(
+                makeEntry(WorkloadD1.class, 1),
+                makeEntry(WorkloadD2.class, 2),
+                makeEntry(WorkloadD3.class, 3),
+                makeEntry(WorkloadD4.class, 4),
+                makeEntry(WorkloadD5.class, 5),
+                makeEntry(WorkloadD6.class, 6));
+        this.workloadEs = Map.ofEntries(
+                makeEntry(WorkloadE1.class, 1),
+                makeEntry(WorkloadE2.class, 2),
+                makeEntry(WorkloadE3.class, 3),
+                makeEntry(WorkloadE4.class, 4),
+                makeEntry(WorkloadE5.class, 5),
+                makeEntry(WorkloadE6.class, 6));
+        this.workloadFs = Map.ofEntries(
+                makeEntry(WorkloadF1.class, 1),
+                makeEntry(WorkloadF2.class, 2),
+                makeEntry(WorkloadF3.class, 3),
+                makeEntry(WorkloadF4.class, 4),
+                makeEntry(WorkloadF5.class, 5),
+                makeEntry(WorkloadF6.class, 6));
+    }
+
+    private <T extends Procedure> Map.Entry<Class<? extends Procedure>, SimpleEntry<Integer, T>> makeEntry(
+            Class<? extends T> procClass,
+            int numPartitions) {
+        return entry(procClass, new SimpleEntry<>(numPartitions, this.getProcedure(procClass)));
     }
 
     @Override
@@ -129,57 +121,69 @@ class HOTWorker extends Worker<HOTBenchmark> {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
         // Workload A
-        for (int involvedPartitions = 1; involvedPartitions < workloadAs.length; involvedPartitions++) {
-            if (procClass.equals(workloadAs[involvedPartitions])) {
-                this.buildParameters();
-                this.workloadA.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
-            }
+        if (this.workloadAs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadA> entry = this.workloadAs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadA workload = entry.getValue();
+
+            this.buildParameters();
+            workload.run(conn, selectKeys(numPartitions, false), this.params, this.results, rng());
         }
         // Workload B
-        for (int involvedPartitions = 1; involvedPartitions < workloadBs.length; involvedPartitions++) {
-            if (procClass.equals(workloadBs[involvedPartitions])) {
-                this.buildParameters();
-                this.workloadB.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
-            }
+        if (this.workloadBs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadB> entry = this.workloadBs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadB workload = entry.getValue();
+
+            this.buildParameters();
+            workload.run(conn, selectKeys(numPartitions, false), this.params, this.results, rng());
         }
         // Workload C
-        for (int involvedPartitions = 1; involvedPartitions < workloadCs.length; involvedPartitions++) {
-            if (procClass.equals(workloadCs[involvedPartitions])) {
-                this.buildParameters();
-                this.workloadC.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
-            }
+        if (this.workloadCs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadC> entry = this.workloadCs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadC workload = entry.getValue();
+
+            this.buildParameters();
+            workload.run(conn, selectKeys(numPartitions, false), this.params, this.results, rng());
         }
         // Workload D
-        for (int involvedPartitions = 1; involvedPartitions < workloadDs.length; involvedPartitions++) {
-            if (procClass.equals(workloadDs[involvedPartitions])) {
-                this.buildParameters();
-                int numSlots = this.otherPartitions.length + 1;
-                int slot = Math.max(this.getBenchmark().region - 1, 0);
-                this.workloadD.run(conn, numSlots, slot, selectKeys(involvedPartitions, true),
-                        this.params,
-                        this.results,
-                        rng());
-            }
+        if (this.workloadDs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadD> entry = this.workloadDs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadD workload = entry.getValue();
+
+            this.buildParameters();
+            int numStrips = this.otherPartitions.length + 1;
+            int slot = Math.max(this.getBenchmark().region - 1, 0);
+            workload.run(conn, numStrips, slot, selectKeys(numPartitions, true),
+                    this.params,
+                    this.results,
+                    rng());
         }
         // Workload E
-        for (int involvedPartitions = 1; involvedPartitions < workloadEs.length; involvedPartitions++) {
-            if (procClass.equals(workloadEs[involvedPartitions])) {
-                this.buildParameters();
-                int numSlots = this.otherPartitions.length + 1;
-                int slot = Math.max(this.getBenchmark().region - 1, 0);
-                this.workloadE.run(conn, numSlots, slot, selectKeys(involvedPartitions, false),
-                        this.maxScanCount,
-                        this.params,
-                        new ArrayList<>(),
-                        rng());
-            }
+        if (this.workloadEs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadE> entry = this.workloadEs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadE workload = entry.getValue();
+
+            this.buildParameters();
+            int numStrips = this.otherPartitions.length + 1;
+            int slot = Math.max(this.getBenchmark().region - 1, 0);
+            workload.run(conn, numStrips, slot, selectKeys(numPartitions, false),
+                    this.maxScanCount,
+                    this.params,
+                    new ArrayList<>(),
+                    rng());
         }
         // Workload F
-        for (int involvedPartitions = 1; involvedPartitions < workloadFs.length; involvedPartitions++) {
-            if (procClass.equals(workloadFs[involvedPartitions])) {
-                this.buildParameters();
-                this.workloadF.run(conn, selectKeys(involvedPartitions, false), this.params, this.results, rng());
-            }
+        if (this.workloadFs.containsKey(procClass)) {
+            SimpleEntry<Integer, WorkloadF> entry = this.workloadFs.get(procClass);
+            int numPartitions = entry.getKey();
+            WorkloadF workload = entry.getValue();
+
+            this.buildParameters();
+            workload.run(conn, selectKeys(numPartitions, false), this.params, this.results, rng());
         }
         return (TransactionStatus.SUCCESS);
     }
