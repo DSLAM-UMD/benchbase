@@ -427,7 +427,9 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         LOG.debug(String.format("%s %s attempting...", this, transactionType));
                     }
 
-                    status = this.executeWork(conn, transactionType);
+                    try (Timer timer = PrometheusMetrics.DEBUG.labels("executeWork").startTimer()) {
+                        status = this.executeWork(conn, transactionType);
+                    }
 
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("%s %s completed with status [%s]...", this, transactionType,

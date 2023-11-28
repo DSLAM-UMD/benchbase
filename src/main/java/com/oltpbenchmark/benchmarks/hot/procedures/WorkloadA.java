@@ -21,14 +21,20 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Random;
 
+import com.oltpbenchmark.PrometheusMetrics;
+
+import io.prometheus.client.Histogram.Timer;
+
 public class WorkloadA extends BasicProcedures {
     public void run(Connection conn, Key[] keys, String[] fields, String[] results, Random rng)
             throws SQLException {
-        for (Key k : keys) {
-            if (rng.nextInt(100) < 50) {
-                read(conn, k, results);
-            } else {
-                update(conn, k, fields);
+        try (Timer timer = PrometheusMetrics.DEBUG.labels("WorkloadA.run").startTimer()) {
+            for (Key k : keys) {
+                if (rng.nextInt(100) < 50) {
+                    read(conn, k, results);
+                } else {
+                    update(conn, k, fields);
+                }
             }
         }
     }

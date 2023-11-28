@@ -37,6 +37,15 @@ public class PrometheusMetrics {
                     1.0, 10.0, 100.0) // 1 s, 10 s, 100 s
             .register(registry);
 
+    public static final Histogram DEBUG = Histogram.build()
+            .name("benchbase_debug_seconds")
+            .help("Debugging")
+            .labelNames("name")
+            .buckets(0.000_001, 0.000_010, 0.000_100, // 1 us, 10 us, 100 us
+                    0.001_000, 0.010_000, 0.100_000, // 1 ms, 10 ms, 100 ms
+                    1.0, 10.0, 100.0) // 1 s, 10 s, 100 s
+            .register(registry);
+
     public static void run(String pushGatewayAddress) {
         new Thread() {
             @Override
