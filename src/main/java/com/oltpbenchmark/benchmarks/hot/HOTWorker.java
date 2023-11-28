@@ -57,14 +57,6 @@ class HOTWorker extends Worker<HOTBenchmark> {
         this.keysPerTxn = benchmarkModule.keysPerTxn;
         this.maxScanCount = benchmarkModule.maxScanCount;
 
-        // This is a minor speed-up to avoid having to invoke the hashmap look-up
-        // everytime we want to execute a txn. This is important to do on
-        // a client machine with not a lot of cores.
-        // We don't use ReadModifyWrite.class because it is not specified in the
-        // benchmark
-        // config file. Any of the ReadModifyWriteX classes can be used though and they
-        // are
-        // all the same.
         this.workloadAs = Map.ofEntries(
                 makeEntry(WorkloadA1.class, 1),
                 makeEntry(WorkloadA2.class, 2),
