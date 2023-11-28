@@ -283,7 +283,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                 long start = System.nanoTime();
 
-                TransactionStatus status = doWork(configuration.getDatabaseType(), transactionType);
+                TransactionStatus status = TransactionStatus.UNKNOWN;
+                try (Timer timer = PrometheusMetrics.DEBUG.labels("doWork").startTimer()) {
+                    status = doWork(configuration.getDatabaseType(), transactionType);
+                }
 
                 long end = System.nanoTime();
 
@@ -407,19 +410,17 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                 TransactionStatus status = TransactionStatus.UNKNOWN;
 
-                try (Timer makeConnTimer = PrometheusMetrics.DEBUG.labels("makeConnection").startTimer()) {
-                    if (this.conn == null) {
-                        try {
-                            this.conn = this.benchmark.makeConnection();
-                            this.conn.setAutoCommit(false);
-                            this.conn.setTransactionIsolation(this.configuration.getIsolationMode());
-                        } catch (SQLException ex) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug(String.format("%s failed to open a connection...", this));
-                            }
-                            retryCount++;
-                            continue;
+                if (this.conn == null) {
+                    try {
+                        this.conn = this.benchmark.makeConnection();
+                        this.conn.setAutoCommit(false);
+                        this.conn.setTransactionIsolation(this.configuration.getIsolationMode());
+                    } catch (SQLException ex) {
+                        if (LOG.isDebugEnabled()) {
+                            LOG.debug(String.format("%s failed to open a connection...", this));
                         }
+                        retryCount++;
+                        continue;
                     }
                 }
 
