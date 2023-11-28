@@ -399,7 +399,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
     protected final TransactionStatus doWork(DatabaseType databaseType, TransactionType transactionType) {
         TransactionStatus finalStatus = TransactionStatus.UNKNOWN;
 
-        try {
+        try (Timer retryLoopTimer = PrometheusMetrics.DEBUG.labels("retryLoop").startTimer()) {
             int retryCount = 0;
             int maxRetryCount = configuration.getMaxRetries();
 
@@ -407,17 +407,19 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                 TransactionStatus status = TransactionStatus.UNKNOWN;
 
-                if (this.conn == null) {
-                    try {
-                        this.conn = this.benchmark.makeConnection();
-                        this.conn.setAutoCommit(false);
-                        this.conn.setTransactionIsolation(this.configuration.getIsolationMode());
-                    } catch (SQLException ex) {
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug(String.format("%s failed to open a connection...", this));
+                try (Timer makeConnTimer = PrometheusMetrics.DEBUG.labels("makeConnection").startTimer()) {
+                    if (this.conn == null) {
+                        try {
+                            this.conn = this.benchmark.makeConnection();
+                            this.conn.setAutoCommit(false);
+                            this.conn.setTransactionIsolation(this.configuration.getIsolationMode());
+                        } catch (SQLException ex) {
+                            if (LOG.isDebugEnabled()) {
+                                LOG.debug(String.format("%s failed to open a connection...", this));
+                            }
+                            retryCount++;
+                            continue;
                         }
-                        retryCount++;
-                        continue;
                     }
                 }
 
@@ -427,9 +429,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         LOG.debug(String.format("%s %s attempting...", this, transactionType));
                     }
 
-                    try (Timer timer = PrometheusMetrics.DEBUG.labels("executeWork").startTimer()) {
-                        status = this.executeWork(conn, transactionType);
-                    }
+                    status = this.executeWork(conn, transactionType);
 
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("%s %s completed with status [%s]...", this, transactionType,
@@ -457,7 +457,9 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     break;
 
                 } catch (SQLException ex) {
-                    conn.rollback();
+                    try (Timer timer = PrometheusMetrics.DEBUG.labels("rollback").startTimer()) {
+                        conn.rollback();
+                    }
 
                     if (isRetryable(ex)) {
                         LOG.debug(String.format(
