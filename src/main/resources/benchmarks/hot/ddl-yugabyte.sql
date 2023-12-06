@@ -9,21 +9,21 @@ DROP TABLESPACE IF EXISTS us_west_1_tablespace;
 CREATE TABLESPACE us_east_1_tablespace WITH (
   replica_placement='{
     "num_replicas": 1,
-    "placement_blocks": [{"cloud":"aws","region":"us-east-1","zone":"us-east-1a","min_num_replicas":1}]
+    "placement_blocks": [{"cloud":"aws","region":"us-east-1","zone":"us-east-1","min_num_replicas":1}]
   }'
 );
 
 CREATE TABLESPACE us_east_2_tablespace WITH (
    replica_placement='{
     "num_replicas": 1,
-    "placement_blocks": [{"cloud":"aws","region":"us-east-2","zone":"us-east-2a","min_num_replicas":1}]
+    "placement_blocks": [{"cloud":"aws","region":"us-east-2","zone":"us-east-2","min_num_replicas":1}]
   }'
  );
 
 CREATE TABLESPACE us_west_1_tablespace WITH (
   replica_placement='{
     "num_replicas": 1,
-    "placement_blocks": [{"cloud":"aws","region":"us-west-1","zone":"us-west-1a","min_num_replicas":1}]
+    "placement_blocks": [{"cloud":"aws","region":"us-west-1","zone":"us-west-1","min_num_replicas":1}]
   }'
 );
 
