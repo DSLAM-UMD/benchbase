@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.api;
 
 import com.oltpbenchmark.WorkloadConfiguration;
@@ -92,7 +91,6 @@ public abstract class Loader<T extends BenchmarkModule> {
         return (this.benchmark.rng());
     }
 
-
     /**
      * Method that can be overriden to specifically unload the tables of the
      * database. In the default implementation it checks for tables from the
@@ -122,17 +120,17 @@ public abstract class Loader<T extends BenchmarkModule> {
         String seqName = SQLUtil.getSequenceName(conn, getDatabaseType(), catalog_col);
         DatabaseType dbType = getDatabaseType();
         if (seqName != null) {
-            if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.CITUS) {
+            if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.YUGABYTE) {
                 sql = String.format("SELECT setval('%s', %d)", seqName.toLowerCase(), value);
-            }
-            else if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {
+            } else if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {
                 sql = String.format("ALTER SEQUENCE [%s] RESTART WITH %d", seqName, value);
             }
         }
 
         if (sql != null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Updating %s auto-increment counter %s with value '%d'", catalog_col.getName(), seqName, value));
+                LOG.debug(String.format("Updating %s auto-increment counter %s with value '%d'", catalog_col.getName(),
+                        seqName, value));
             }
             try (Statement stmt = conn.createStatement()) {
                 boolean result = stmt.execute(sql);

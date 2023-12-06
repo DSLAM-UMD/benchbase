@@ -20,15 +20,15 @@ package com.oltpbenchmark.api.collectors;
 import com.oltpbenchmark.types.DatabaseType;
 
 public class DBParameterCollectorGen {
-    public static DBParameterCollector getCollector(DatabaseType dbType, String dbUrl, String username, String password) {
+    public static DBParameterCollector getCollector(DatabaseType dbType, String dbUrl, String username,
+            String password) {
         switch (dbType) {
 
             case MYSQL:
             case MARIADB:
                 return new MySQLCollector(dbUrl, username, password);
             case POSTGRES:
-            case CITUS:
-            case YUGABYTEDB:
+            case YUGABYTE:
                 return new PostgresCollector(dbUrl, username, password);
             case COCKROACHDB:
                 return new CockroachCollector(dbUrl, username, password);

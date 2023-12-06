@@ -84,7 +84,8 @@ public abstract class Procedure {
      * @return
      * @throws SQLException
      */
-    public final PreparedStatement getPreparedStatement(Connection conn, SQLStmt stmt, Object... params) throws SQLException {
+    public final PreparedStatement getPreparedStatement(Connection conn, SQLStmt stmt, Object... params)
+            throws SQLException {
         PreparedStatement pStmt = this.getPreparedStatementReturnKeys(conn, stmt, null);
         for (int i = 0; i < params.length; i++) {
             pStmt.setObject(i + 1, params[i]);
@@ -103,21 +104,19 @@ public abstract class Procedure {
      * @return
      * @throws SQLException
      */
-    public final PreparedStatement getPreparedStatementReturnKeys(Connection conn, SQLStmt stmt, int[] is) throws SQLException {
+    public final PreparedStatement getPreparedStatementReturnKeys(Connection conn, SQLStmt stmt, int[] is)
+            throws SQLException {
 
         PreparedStatement pStmt = null;
 
-        // HACK: If the target system is Postgres, wrap the PreparedStatement in a special
-        //       one that fakes the getGeneratedKeys().
-        if (is != null && (
-                this.dbType == DatabaseType.POSTGRES
-                || this.dbType == DatabaseType.CITUS
+        // HACK: If the target system is Postgres, wrap the PreparedStatement in a
+        // special
+        // one that fakes the getGeneratedKeys().
+        if (is != null && (this.dbType == DatabaseType.POSTGRES
+                || this.dbType == DatabaseType.YUGABYTE
                 || this.dbType == DatabaseType.COCKROACHDB
-                || this.dbType == DatabaseType.YUGABYTEDB
                 || this.dbType == DatabaseType.SQLSERVER
-                || this.dbType == DatabaseType.SQLAZURE
-            )
-        ) {
+                || this.dbType == DatabaseType.SQLAZURE)) {
             pStmt = new AutoIncrementPreparedStatement(this.dbType, conn.prepareStatement(stmt.getSQL()));
         }
         // Everyone else can use the regular getGeneratedKeys() method
@@ -145,14 +144,15 @@ public abstract class Procedure {
         for (String stmtName : stmtNames) {
             String sql = dialects.getSQL(this.procName, stmtName);
 
-
             SQLStmt stmt = this.name_stmt_xref.get(stmtName);
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("Setting %s SQL dialect for %s.%s",
                         dialects.getDatabaseType(), this.procName, stmtName));
             }
             if (stmt == null) {
-                throw new RuntimeException(String.format("Dialect file contains an unknown statement: Procedure %s, Statement %s", this.procName, stmtName));
+                throw new RuntimeException(
+                        String.format("Dialect file contains an unknown statement: Procedure %s, Statement %s",
+                                this.procName, stmtName));
             }
             stmt.setSQL(sql);
         }

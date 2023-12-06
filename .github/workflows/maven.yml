@@ -473,7 +473,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
-      BENCHBASE_PROFILES: "postgres mysql"
+      BENCHBASE_PROFILES: "postgres mysql yugabyte"
       CONTAINER_REGISTRY_NAME: ghcr.io/${{ github.repository_owner }}
       SKIP_TESTS: true
     permissions:

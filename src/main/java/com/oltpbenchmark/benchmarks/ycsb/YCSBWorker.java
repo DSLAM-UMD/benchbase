@@ -30,7 +30,6 @@ import com.oltpbenchmark.util.TextGenerator;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * YCSBWorker Implementation
@@ -58,7 +57,8 @@ class YCSBWorker extends Worker<YCSBBenchmark> {
     public YCSBWorker(YCSBBenchmark benchmarkModule, int id, int init_record_count) {
         super(benchmarkModule, id);
         this.data = new char[benchmarkModule.fieldSize];
-        this.readRecord = new ZipfianGenerator(rng(), init_record_count, benchmarkModule.skewFactor);// pool for read keys
+        this.readRecord = new ZipfianGenerator(rng(), init_record_count, benchmarkModule.skewFactor);// pool for read
+                                                                                                     // keys
         this.randScan = new ZipfianGenerator(rng(), YCSBConstants.MAX_SCAN, benchmarkModule.skewFactor);
 
         synchronized (YCSBWorker.class) {
@@ -69,7 +69,7 @@ class YCSBWorker extends Worker<YCSBBenchmark> {
         }
 
         // This is a minor speed-up to avoid having to invoke the hashmap look-up
-        // everytime we want to execute a txn. This is important to do on 
+        // everytime we want to execute a txn. This is important to do on
         // a client machine with not a lot of cores
         this.procUpdateRecord = this.getProcedure(UpdateRecord.class);
         this.procScanRecord = this.getProcedure(ScanRecord.class);
@@ -80,7 +80,8 @@ class YCSBWorker extends Worker<YCSBBenchmark> {
     }
 
     @Override
-    protected TransactionStatus executeWork(Connection conn, TransactionType nextTrans) throws UserAbortException, SQLException {
+    protected TransactionStatus executeWork(Connection conn, TransactionType nextTrans)
+            throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
 
         if (procClass.equals(DeleteRecord.class)) {

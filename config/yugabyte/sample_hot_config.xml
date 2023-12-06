@@ -2,11 +2,11 @@
 <parameters>
 
     <!-- Connection details -->
-    <type>POSTGRES</type>
+    <type>YUGABYTE</type>
     <driver>org.postgresql.Driver</driver>
 
-    <url>jdbc:postgresql://localhost:55433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
-    <username>cloud_admin</username>
+    <url>jdbc:postgresql://localhost:5433/yugabyte?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true</url>
+    <username>postgres</username>
     <password></password>
 
     <isolation>TRANSACTION_SERIALIZABLE</isolation>

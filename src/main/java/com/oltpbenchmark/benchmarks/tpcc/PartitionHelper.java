@@ -25,6 +25,7 @@ public class PartitionHelper {
             DatabaseType dbType = workloadConf.getDatabaseType();
             switch (dbType) {
                 case POSTGRES:
+                case YUGABYTE:
                     computePostgresPartitions(conn);
                     break;
                 case MYSQL:
@@ -52,7 +53,7 @@ public class PartitionHelper {
         String getPartitionName = String.format("""
                 select relname from pg_class
                 where relname like '%s_%%' and relkind = 'r'
-                order by relregion;
+                order by relname;
                 """, TPCCConstants.TABLENAME_WAREHOUSE);
         try (Statement stmt = conn.createStatement();
                 ResultSet res = stmt.executeQuery(getPartitionName)) {

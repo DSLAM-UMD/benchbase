@@ -42,12 +42,10 @@ public class AutoIncrementPreparedStatement implements PreparedStatement {
     @Override
     public ResultSet getGeneratedKeys() throws SQLException {
         if (this.dbType == DatabaseType.POSTGRES
-            || this.dbType == DatabaseType.CITUS
-            || this.dbType == DatabaseType.COCKROACHDB
-            || this.dbType == DatabaseType.YUGABYTEDB
-            || this.dbType == DatabaseType.SQLSERVER
-            || this.dbType == DatabaseType.SQLAZURE
-        ) {
+                || this.dbType == DatabaseType.YUGABYTE
+                || this.dbType == DatabaseType.COCKROACHDB
+                || this.dbType == DatabaseType.SQLSERVER
+                || this.dbType == DatabaseType.SQLAZURE) {
             return this.stmt.getResultSet();
         } else {
             return this.stmt.getGeneratedKeys();
@@ -549,6 +547,5 @@ public class AutoIncrementPreparedStatement implements PreparedStatement {
     public boolean isCloseOnCompletion() throws SQLException {
         throw new SQLFeatureNotSupportedException();
     }
-
 
 }

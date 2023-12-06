@@ -35,7 +35,7 @@ import java.util.*;
 public abstract class SQLUtil {
     private static final Logger LOG = LoggerFactory.getLogger(SQLUtil.class);
 
-    private static final DateFormat[] timestamp_formats = new DateFormat[]{
+    private static final DateFormat[] timestamp_formats = new DateFormat[] {
             new SimpleDateFormat("yyyy-MM-dd"),
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"),
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"),
@@ -158,19 +158,19 @@ public abstract class SQLUtil {
 
         String seqName = null;
         String sql = null;
-        if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.CITUS || dbType == DatabaseType.YUGABYTEDB) {
+        if (dbType == DatabaseType.POSTGRES || dbType == DatabaseType.YUGABYTE) {
             sql = String.format("SELECT pg_get_serial_sequence('%s', '%s')",
                     catalog_tbl.getName(), catalog_col.getName());
         } else if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {
             // NOTE: This likely only handles certain syntaxes for defaults.
             sql = String.format("""
-SELECT REPLACE(REPLACE([definition], '(NEXT VALUE FOR [', ''), '])', '') AS seq
-FROM sys.default_constraints dc
-JOIN sys.columns c ON c.default_object_id=dc.object_id
-JOIN sys.tables t ON c.object_id=t.object_id
-WHERE t.name='%s' AND c.name='%s'
-""",
-                catalog_tbl.getName(), catalog_col.getName());
+                    SELECT REPLACE(REPLACE([definition], '(NEXT VALUE FOR [', ''), '])', '') AS seq
+                    FROM sys.default_constraints dc
+                    JOIN sys.columns c ON c.default_object_id=dc.object_id
+                    JOIN sys.tables t ON c.object_id=t.object_id
+                    WHERE t.name='%s' AND c.name='%s'
+                    """,
+                    catalog_tbl.getName(), catalog_col.getName());
         } else {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Unexpected request for sequence name on {} using {}", catalog_col, dbType);
@@ -202,7 +202,8 @@ WHERE t.name='%s' AND c.name='%s'
      * @param catalog_tbl
      * @param on
      */
-    public static void setIdentityInsert(Connection conn, DatabaseType dbType, Table catalog_tbl, boolean on) throws SQLException {
+    public static void setIdentityInsert(Connection conn, DatabaseType dbType, Table catalog_tbl, boolean on)
+            throws SQLException {
         String sql = null;
         if (dbType == DatabaseType.SQLSERVER || dbType == DatabaseType.SQLAZURE) {
             sql = "SET IDENTITY_INSERT " + catalog_tbl.getName() + " " + (on ? "ON" : "OFF");
@@ -411,7 +412,7 @@ WHERE t.name='%s' AND c.name='%s'
         boolean escape_names = db_type.shouldEscapeNames();
 
         StringBuilder sb = new StringBuilder();
-        if(db_type.equals(DatabaseType.PHOENIX)) {
+        if (db_type.equals(DatabaseType.PHOENIX)) {
             sb.append("UPSERT");
         } else {
             sb.append("INSERT");
@@ -478,7 +479,8 @@ WHERE t.name='%s' AND c.name='%s'
     /**
      * Extract the catalog from the database.
      */
-    public static AbstractCatalog getCatalog(BenchmarkModule benchmarkModule, DatabaseType databaseType, Connection connection) throws SQLException {
+    public static AbstractCatalog getCatalog(BenchmarkModule benchmarkModule, DatabaseType databaseType,
+            Connection connection) throws SQLException {
         switch (databaseType) {
             case NOISEPAGE: // fall-through
             case SQLITE:
@@ -490,9 +492,11 @@ WHERE t.name='%s' AND c.name='%s'
     }
 
     /**
-     * Create an in-memory instance of HSQLDB to extract all of the catalog information.
+     * Create an in-memory instance of HSQLDB to extract all of the catalog
+     * information.
      * <p>
-     * This supports databases that may not support all of the SQL standard just yet.
+     * This supports databases that may not support all of the SQL standard just
+     * yet.
      *
      * @return
      */
@@ -503,7 +507,8 @@ WHERE t.name='%s' AND c.name='%s'
     /**
      * Extract catalog information from the database directly.
      */
-    private static AbstractCatalog getCatalogDirect(DatabaseType databaseType, Connection connection) throws SQLException {
+    private static AbstractCatalog getCatalogDirect(DatabaseType databaseType, Connection connection)
+            throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
 
         String separator = md.getIdentifierQuoteString();
@@ -515,12 +520,12 @@ WHERE t.name='%s' AND c.name='%s'
         List<String> excludedColumns = new ArrayList<>();
 
         if (databaseType.equals(DatabaseType.COCKROACHDB)) {
-            // cockroachdb has a hidden column called "ROWID" that should not be directly used via the catalog
+            // cockroachdb has a hidden column called "ROWID" that should not be directly
+            // used via the catalog
             excludedColumns.add("ROWID");
         }
 
-
-        try (ResultSet table_rs = md.getTables(catalog, schema, null, new String[]{"TABLE", "PARTITIONED TABLE"})) {
+        try (ResultSet table_rs = md.getTables(catalog, schema, null, new String[] { "TABLE", "PARTITIONED TABLE" })) {
             while (table_rs.next()) {
 
                 String table_type = table_rs.getString("TABLE_TYPE");
@@ -536,7 +541,8 @@ WHERE t.name='%s' AND c.name='%s'
                         String col_name = col_rs.getString("COLUMN_NAME");
 
                         if (excludedColumns.contains(col_name.toUpperCase())) {
-                            LOG.debug("found excluded column [{}] for in database type [{}].  Skipping...", col_name, databaseType);
+                            LOG.debug("found excluded column [{}] for in database type [{}].  Skipping...", col_name,
+                                    databaseType);
                             continue;
                         }
 
@@ -544,7 +550,8 @@ WHERE t.name='%s' AND c.name='%s'
                         Integer col_size = col_rs.getInt("COLUMN_SIZE");
                         boolean col_nullable = col_rs.getString("IS_NULLABLE").equalsIgnoreCase("YES");
 
-                        Column catalog_col = new Column(col_name, separator, catalog_tbl, col_type, col_size, col_nullable);
+                        Column catalog_col = new Column(col_name, separator, catalog_tbl, col_type, col_size,
+                                col_nullable);
 
                         catalog_tbl.addColumn(catalog_col);
                     }

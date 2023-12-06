@@ -50,11 +50,11 @@ public enum DatabaseType {
     SQLSERVER(true, true, true),
     TIMESTEN(true, false),
     PHOENIX(true, true),
-    CITUS(false, false, true),
-    YUGABYTEDB(false, false, true);
+    YUGABYTE(false, false, true);
 
-
-    DatabaseType(boolean escapeNames, boolean includeColNames, boolean loadNeedsUpdateColumnSequence) {
+    DatabaseType(boolean escapeNames,
+            boolean includeColNames,
+            boolean loadNeedsUpdateColumnSequence) {
         this.escapeNames = escapeNames;
         this.includeColNames = includeColNames;
         this.loadNeedsUpdateColumnSequence = loadNeedsUpdateColumnSequence;
@@ -82,14 +82,13 @@ public enum DatabaseType {
      */
     private final boolean loadNeedsUpdateColumnSequence;
 
-
     // ---------------------------------------------------------------
     // ACCESSORS
     // ----------------------------------------------------------------
 
     /**
      * @return True if the framework should escape the names of columns/tables when
-     * generating SQL to load in data for the target database type.
+     *         generating SQL to load in data for the target database type.
      */
     public boolean shouldEscapeNames() {
         return (this.escapeNames);
@@ -97,7 +96,7 @@ public enum DatabaseType {
 
     /**
      * @return True if the framework should include the names of columns when
-     * generating SQL to load in data for the target database type.
+     *         generating SQL to load in data for the target database type.
      */
     public boolean shouldIncludeColumnNames() {
         return (this.includeColNames);
@@ -105,7 +104,7 @@ public enum DatabaseType {
 
     /**
      * @return True if the framework should attempt to update the column
-     * sequence after loading data.
+     *         sequence after loading data.
      */
     public boolean shouldUpdateColumnSequenceAfterLoad() {
         return (this.loadNeedsUpdateColumnSequence);
