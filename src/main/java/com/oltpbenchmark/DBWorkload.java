@@ -122,7 +122,7 @@ public class DBWorkload {
             // Pull in database configuration
             wrkld.setDatabaseType(DatabaseType.get(xmlConfig.getString("type")));
             wrkld.setDriverClass(xmlConfig.getString("driver"));
-            wrkld.setUrl(xmlConfig.getString("url"));
+            wrkld.setUrls(xmlConfig.getString("url").split("\\s+"));
             wrkld.setUsername(xmlConfig.getString("username"));
             wrkld.setPassword(xmlConfig.getString("password"));
             wrkld.setRandomSeed(xmlConfig.getInt("randomSeed", -1));
@@ -170,7 +170,7 @@ public class DBWorkload {
             initDebug.put("Configuration", configFile);
             initDebug.put("Type", wrkld.getDatabaseType());
             initDebug.put("Driver", wrkld.getDriverClass());
-            initDebug.put("URL", wrkld.getUrl());
+            initDebug.put("URL", String.join(";", wrkld.getUrls()));
             initDebug.put("Isolation", wrkld.getIsolationString());
             initDebug.put("Batch Size", wrkld.getBatchSize());
             initDebug.put("Scale Factor", wrkld.getScaleFactor());

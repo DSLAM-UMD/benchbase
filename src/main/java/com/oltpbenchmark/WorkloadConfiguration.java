@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark;
 
 import com.oltpbenchmark.api.TransactionTypes;
@@ -25,6 +24,7 @@ import org.apache.commons.configuration2.XMLConfiguration;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class WorkloadConfiguration {
@@ -32,7 +32,7 @@ public class WorkloadConfiguration {
     private final List<Phase> phases = new ArrayList<>();
     private DatabaseType databaseType;
     private String benchmarkName;
-    private String url;
+    private final List<String> urls = new ArrayList<>();
     private String username;
     private String password;
     private String driverClass;
@@ -51,7 +51,8 @@ public class WorkloadConfiguration {
     private String ddlPath = null;
 
     /**
-     * If true, establish a new connection for each transaction, otherwise use one persistent connection per client
+     * If true, establish a new connection for each transaction, otherwise use one
+     * persistent connection per client
      * session. This is useful to measure the connection overhead.
      */
     private boolean newConnectionPerTxn = false;
@@ -77,11 +78,15 @@ public class WorkloadConfiguration {
     }
 
     public String getUrl() {
-        return url;
+        return urls.get(0);
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public List<String> getUrls() {
+        return urls;
+    }
+
+    public void setUrls(String[] urls) {
+        this.urls.addAll(Arrays.asList(urls));
     }
 
     public String getUsername() {
@@ -132,7 +137,8 @@ public class WorkloadConfiguration {
     }
 
     /**
-     * Used by the configuration loader at startup. Changing it any other time is probably dangeroues. @see
+     * Used by the configuration loader at startup. Changing it any other time is
+     * probably dangeroues. @see
      * newConnectionPerTxn member docs for behavior.
      *
      * @param newConnectionPerTxn
@@ -148,12 +154,11 @@ public class WorkloadConfiguration {
         this.workloadState = new WorkloadState(benchmarkState, phases, terminals);
     }
 
-    public void addPhase(int id, int time, int warmup, double rate, List<Double> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
-        phases.add(new Phase(benchmarkName, id, time, warmup, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
+    public void addPhase(int id, int time, int warmup, double rate, List<Double> weights, boolean rateLimited,
+            boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
+        phases.add(new Phase(benchmarkName, id, time, warmup, rate, weights, rateLimited, disabled, serial, timed,
+                active_terminals, arrival));
     }
-
-
-
 
     /**
      * The number of loader threads that the framework is allowed to use.
@@ -178,15 +183,21 @@ public class WorkloadConfiguration {
 
     /**
      * The random seed for this benchmark
+     * 
      * @return
      */
-    public int getRandomSeed() { return this.randomSeed; }
+    public int getRandomSeed() {
+        return this.randomSeed;
+    }
 
     /**
      * Set the random seed for this benchmark
+     * 
      * @param randomSeed
      */
-    public void setRandomSeed(int randomSeed) { this.randomSeed = randomSeed; }
+    public void setRandomSeed(int randomSeed) {
+        this.randomSeed = randomSeed;
+    }
 
     /**
      * Return the scale factor of the database size
@@ -329,23 +340,23 @@ public class WorkloadConfiguration {
     @Override
     public String toString() {
         return "WorkloadConfiguration{" +
-               "phases=" + phases +
-               ", databaseType=" + databaseType +
-               ", benchmarkName='" + benchmarkName + '\'' +
-               ", url='" + url + '\'' +
-               ", username='" + username + '\'' +
-               ", password='" + password + '\'' +
-               ", driverClass='" + driverClass + '\'' +
-               ", batchSize=" + batchSize +
-               ", maxRetries=" + maxRetries +
-               ", scaleFactor=" + scaleFactor +
-               ", selectivity=" + selectivity +
-               ", terminals=" + terminals +
-               ", loaderThreads=" + loaderThreads +
-               ", workloadState=" + workloadState +
-               ", transTypes=" + transTypes +
-               ", isolationMode=" + isolationMode +
-               ", dataDir='" + dataDir + '\'' +
-               '}';
+                "phases=" + phases +
+                ", databaseType=" + databaseType +
+                ", benchmarkName='" + benchmarkName + '\'' +
+                ", url='" + urls.get(0) + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", driverClass='" + driverClass + '\'' +
+                ", batchSize=" + batchSize +
+                ", maxRetries=" + maxRetries +
+                ", scaleFactor=" + scaleFactor +
+                ", selectivity=" + selectivity +
+                ", terminals=" + terminals +
+                ", loaderThreads=" + loaderThreads +
+                ", workloadState=" + workloadState +
+                ", transTypes=" + transTypes +
+                ", isolationMode=" + isolationMode +
+                ", dataDir='" + dataDir + '\'' +
+                '}';
     }
 }

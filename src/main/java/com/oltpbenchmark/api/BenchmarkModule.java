@@ -15,7 +15,6 @@
  *
  */
 
-
 package com.oltpbenchmark.api;
 
 import com.oltpbenchmark.WorkloadConfiguration;
@@ -35,13 +34,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Base class for all benchmark implementations
  */
 public abstract class BenchmarkModule {
     private static final Logger LOG = LoggerFactory.getLogger(BenchmarkModule.class);
-
 
     /**
      * The workload configuration for this benchmark invocation
@@ -65,8 +64,11 @@ public abstract class BenchmarkModule {
 
     private AbstractCatalog catalog = null;
 
+    private AtomicInteger urlCounter = new AtomicInteger(0);
+
     /**
      * Constructor!
+     * 
      * @param workConf
      */
     public BenchmarkModule(WorkloadConfiguration workConf) {
@@ -79,12 +81,13 @@ public abstract class BenchmarkModule {
     // --------------------------------------------------------------------------
 
     public final Connection makeConnection() throws SQLException {
-
+        int urlIndex = urlCounter.getAndIncrement() % workConf.getUrls().size();
+        String url = workConf.getUrls().get(urlIndex);
         if (StringUtils.isEmpty(workConf.getUsername())) {
-            return DriverManager.getConnection(workConf.getUrl());
+            return DriverManager.getConnection(url);
         } else {
             return DriverManager.getConnection(
-                    workConf.getUrl(),
+                    url,
                     workConf.getUsername(),
                     workConf.getPassword());
         }
@@ -117,7 +120,8 @@ public abstract class BenchmarkModule {
     // --------------------------------------------------------------------------
 
     /**
-     * Return the Random generator that should be used by all this benchmark's components.
+     * Return the Random generator that should be used by all this benchmark's
+     * components.
      * We are using ThreadLocal to make this support multiple threads better.
      * This will set the seed if one is specified in the workload config file
      */
@@ -139,7 +143,7 @@ public abstract class BenchmarkModule {
     }
 
     protected static <T> String convertBenchmarkClassToBenchmarkName(Class<T> clazz) {
-        assert(clazz != null);
+        assert (clazz != null);
         String name = clazz.getSimpleName().toLowerCase();
         // Special case for "CHBenCHmark"
         if (!name.equals("chbenchmark") && name.endsWith("benchmark")) {
@@ -161,7 +165,8 @@ public abstract class BenchmarkModule {
         if (db_type != null) {
             DatabaseType ddl_db_type = db_type;
             // HACK: Use MySQL if we're given MariaDB
-            if (ddl_db_type == DatabaseType.MARIADB) ddl_db_type = DatabaseType.MYSQL;
+            if (ddl_db_type == DatabaseType.MARIADB)
+                ddl_db_type = DatabaseType.MYSQL;
             names.add("ddl-" + ddl_db_type.name().toLowerCase() + ".sql");
         }
         names.add("ddl-generic.sql");
@@ -180,10 +185,8 @@ public abstract class BenchmarkModule {
             }
         }
 
-
         return null;
     }
-
 
     public final List<Worker<? extends BenchmarkModule>> makeWorkers() throws IOException {
         return (this.makeWorkersImpl());
@@ -220,20 +223,19 @@ public abstract class BenchmarkModule {
      */
     public final void createDatabase(DatabaseType dbType, Connection conn) throws SQLException, IOException {
 
-            ScriptRunner runner = new ScriptRunner(conn, true, true);
+        ScriptRunner runner = new ScriptRunner(conn, true, true);
 
-            if (workConf.getDDLPath() != null) {
-                String ddlPath = workConf.getDDLPath();
-                LOG.warn("Overriding default DDL script path");
-                LOG.debug("Executing script [{}] for database type [{}]", ddlPath, dbType);
-                runner.runExternalScript(ddlPath);
-            } else {
-                String ddlPath = this.getDatabaseDDLPath(dbType);
-                LOG.debug("Executing script [{}] for database type [{}]", ddlPath, dbType);
-                runner.runScript(ddlPath);
-            }
+        if (workConf.getDDLPath() != null) {
+            String ddlPath = workConf.getDDLPath();
+            LOG.warn("Overriding default DDL script path");
+            LOG.debug("Executing script [{}] for database type [{}]", ddlPath, dbType);
+            runner.runExternalScript(ddlPath);
+        } else {
+            String ddlPath = this.getDatabaseDDLPath(dbType);
+            LOG.debug("Executing script [{}] for database type [{}]", ddlPath, dbType);
+            runner.runScript(ddlPath);
+        }
     }
-
 
     /**
      * Invoke this benchmark's database loader
@@ -243,7 +245,6 @@ public abstract class BenchmarkModule {
 
         loader = this.makeLoaderImpl();
         if (loader != null) {
-
 
             try {
                 List<LoaderThread> loaderThreads = loader.createLoaderThreads();
@@ -300,7 +301,6 @@ public abstract class BenchmarkModule {
         return this.catalog;
     }
 
-
     /**
      * Return the StatementDialects loaded for this benchmark
      */
@@ -313,7 +313,6 @@ public abstract class BenchmarkModule {
         return getBenchmarkName();
     }
 
-
     /**
      * Initialize a TransactionType handle for the get procedure name and id
      * This should only be invoked a start-up time
@@ -323,9 +322,11 @@ public abstract class BenchmarkModule {
      * @return
      */
     @SuppressWarnings("unchecked")
-    public final TransactionType initTransactionType(String procName, int id, long preExecutionWait, long postExecutionWait) {
+    public final TransactionType initTransactionType(String procName, int id, long preExecutionWait,
+            long postExecutionWait) {
         if (id == TransactionType.INVALID_ID) {
-            throw new RuntimeException(String.format("Procedure %s.%s cannot use the reserved id '%d' for %s", getBenchmarkName(), procName, id, TransactionType.INVALID.getClass().getSimpleName()));
+            throw new RuntimeException(String.format("Procedure %s.%s cannot use the reserved id '%d' for %s",
+                    getBenchmarkName(), procName, id, TransactionType.INVALID.getClass().getSimpleName()));
         }
 
         Package pkg = this.getProcedurePackageImpl();
