@@ -27,6 +27,9 @@
     <!-- Number of hot keys per partition -->
     <hot>0</hot>
 
+    <!-- How hot set is distributed, either "cluster" or "even" -->
+    <hotdistribution>cluster</hotdistribution>
+
     <!-- Number of keys per transaction -->
     <keyspertxn>8</keyspertxn>
 

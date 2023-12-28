@@ -42,6 +42,7 @@ public class HOTBenchmark extends BenchmarkModule {
     final int fieldSize;
     final int region;
     final int hot;
+    final HotDistribution hotDistribution;
     final int keysPerTxn;
     final int maxScanCount;
     final boolean loadAll;
@@ -52,6 +53,7 @@ public class HOTBenchmark extends BenchmarkModule {
         int fieldSize = HOTConstants.MAX_FIELD_SIZE;
         int region = 0;
         int hot = 0;
+        HotDistribution hotDistribution = HotDistribution.CLUSTER;
         int keysPerTxn = 8;
         boolean loadAll = false;
         int maxScanCount = 100;
@@ -68,6 +70,10 @@ public class HOTBenchmark extends BenchmarkModule {
 
             if (xmlConfig.containsKey("hot")) {
                 hot = xmlConfig.getInt("hot");
+            }
+
+            if (xmlConfig.containsKey("hotdistribution")) {
+                hotDistribution = HotDistribution.valueOf(xmlConfig.getString("hotdistribution").toUpperCase());
             }
 
             if (xmlConfig.containsKey("keyspertxn")) {
@@ -89,6 +95,7 @@ public class HOTBenchmark extends BenchmarkModule {
         }
         this.region = region;
         this.hot = hot;
+        this.hotDistribution = hotDistribution;
         this.keysPerTxn = keysPerTxn;
         this.maxScanCount = maxScanCount;
         this.loadAll = loadAll;

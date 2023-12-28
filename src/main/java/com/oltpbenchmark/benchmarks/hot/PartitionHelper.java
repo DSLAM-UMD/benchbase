@@ -87,7 +87,7 @@ public class PartitionHelper {
     }
 
     private void appendPartition(Object id) {
-        this.partitions.add(new Partition(id, 0, this.numRecords, this.benchmark.hot));
+        this.partitions.add(new Partition(id, 0, this.numRecords, this.benchmark.hot, this.benchmark.hotDistribution));
     }
 
     private void finalizePartitions(Connection conn) throws SQLException {

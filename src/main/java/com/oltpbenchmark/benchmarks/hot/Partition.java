@@ -4,22 +4,35 @@ import java.util.Random;
 
 import com.oltpbenchmark.distributions.CounterGenerator;
 
+enum HotDistribution {
+    CLUSTER, // hot keys are clustered together
+    EVEN, // hot keys are evenly distributed
+}
+
 public class Partition {
     private Object id;
     private int from;
     private int to;
     private int hot;
+    private HotDistribution distribution;
+    // This is only used for the EVEN distribution.
+    // Cache this value to avoid repeated division.
+    private int hotInterval;
     private CounterGenerator insertCounter = new CounterGenerator(0);
 
     public Partition(Object id) {
-        this(id, 0, 0, 0);
+        this(id, 0, 0, 0, HotDistribution.CLUSTER);
     }
 
-    public Partition(Object id, int from, int to, int hot) {
+    public Partition(Object id, int from, int to, int hot, HotDistribution distribution) {
         this.id = id;
         this.from = from;
         this.to = to;
         this.hot = Math.min(hot, to - from);
+        this.distribution = distribution;
+        if (distribution == HotDistribution.EVEN) {
+            this.hotInterval = (to - from) / hot;
+        }
     }
 
     public boolean isEmpty() {
@@ -40,12 +53,33 @@ public class Partition {
 
     public int nextHot(Random rng) {
         checkEmpty();
-        return (hot <= 0) ? this.next(rng) : (rng.nextInt(hot) + from);
+        if (hot <= 0) {
+            return this.next(rng);
+        }
+        switch (distribution) {
+            case CLUSTER:
+                return rng.nextInt(hot) + from;
+            case EVEN:
+                return rng.nextInt(hot) * hotInterval + from;
+            default:
+                throw new IllegalStateException("Unknown distribution: " + distribution);
+        }
     }
 
     public int nextCold(Random rng) {
         checkEmpty();
-        return (to - from - hot <= 0) ? this.next(rng) : (rng.nextInt(to - from - hot) + from + hot);
+        if (to - from - hot <= 0) {
+            return this.next(rng);
+        }
+        switch (distribution) {
+            case CLUSTER:
+                return rng.nextInt(to - from - hot) + from + hot;
+            case EVEN:
+                int intervalPick = rng.nextInt(hotInterval - 1) + 1;
+                return rng.nextInt(hot) * hotInterval + from + intervalPick;
+            default:
+                throw new IllegalStateException("Unknown distribution: " + distribution);
+        }
     }
 
     public int nextLatest(Random rng) {
