@@ -402,6 +402,11 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
         try {
             int retryCount = 0;
             int maxRetryCount = configuration.getMaxRetries();
+            boolean retryIsError = false;
+            if (maxRetryCount <= 0) {
+                maxRetryCount = 1;
+                retryIsError = true;
+            }
 
             while (retryCount < maxRetryCount && this.workloadState.getGlobalState() != State.DONE) {
 
@@ -457,7 +462,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                 } catch (SQLException ex) {
                     conn.rollback();
 
-                    if (isRetryable(ex)) {
+                    if (isRetryable(ex) && !retryIsError) {
                         LOG.debug(String.format(
                                 "Retryable SQLException occurred during [%s]... current retry attempt [%d], max retry attempts [%d], sql state [%s], error code [%d].",
                                 transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode()), ex);
