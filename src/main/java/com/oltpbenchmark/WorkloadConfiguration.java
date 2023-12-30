@@ -26,6 +26,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public class WorkloadConfiguration {
 
@@ -33,6 +34,7 @@ public class WorkloadConfiguration {
     private DatabaseType databaseType;
     private String benchmarkName;
     private final List<String> urls = new ArrayList<>();
+    private Optional<String> metadataUrl = Optional.empty();
     private String username;
     private String password;
     private String driverClass;
@@ -87,6 +89,14 @@ public class WorkloadConfiguration {
 
     public void setUrls(String[] urls) {
         this.urls.addAll(Arrays.asList(urls));
+    }
+
+    public void setMetadataUrl(String url) {
+        this.metadataUrl = Optional.of(url);
+    }
+
+    public Optional<String> getMetadataUrl() {
+        return this.metadataUrl;
     }
 
     public String getUsername() {
