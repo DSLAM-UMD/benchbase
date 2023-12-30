@@ -124,7 +124,7 @@ public abstract class AbstractTestCase<T extends BenchmarkModule> {
 
         this.workConf.setTransTypes(txnTypes);
         this.workConf.setDatabaseType(DB_TYPE);
-        this.workConf.setUrl(DB_CONNECTION);
+        this.workConf.setUrls(new String[]{DB_CONNECTION});
         this.workConf.setScaleFactor(DB_SCALE_FACTOR);
         this.workConf.setTerminals(1);
         this.workConf.setBatchSize(128);

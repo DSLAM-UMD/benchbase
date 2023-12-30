@@ -83,6 +83,10 @@ public abstract class BenchmarkModule {
     public final Connection makeConnection() throws SQLException {
         int urlIndex = urlCounter.getAndIncrement() % workConf.getUrls().size();
         String url = workConf.getUrls().get(urlIndex);
+        return makeConnection(url);
+    }
+
+    public final Connection makeConnection(String url) throws SQLException {
         if (StringUtils.isEmpty(workConf.getUsername())) {
             return DriverManager.getConnection(url);
         } else {
@@ -200,7 +204,9 @@ public abstract class BenchmarkModule {
                 LOG.error(throwables.getMessage(), throwables);
             }
         }
-        try (Connection conn = this.makeConnection()) {
+        Optional<String> metadataUrl = this.workConf.getMetadataUrl();
+        String url = metadataUrl.orElse(workConf.getUrls().get(0));
+        try (Connection conn = this.makeConnection(url)) {
             this.catalog = SQLUtil.getCatalog(this, this.getWorkloadConfiguration().getDatabaseType(), conn);
         }
     }

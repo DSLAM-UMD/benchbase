@@ -123,6 +123,9 @@ public class DBWorkload {
             wrkld.setDatabaseType(DatabaseType.get(xmlConfig.getString("type")));
             wrkld.setDriverClass(xmlConfig.getString("driver"));
             wrkld.setUrls(xmlConfig.getString("url").split("\\s+"));
+            if (xmlConfig.containsKey("metadataUrl")) {
+                wrkld.setMetadataUrl(xmlConfig.getString("metadataUrl"));
+            }
             wrkld.setUsername(xmlConfig.getString("username"));
             wrkld.setPassword(xmlConfig.getString("password"));
             wrkld.setRandomSeed(xmlConfig.getInt("randomSeed", -1));
@@ -170,6 +173,7 @@ public class DBWorkload {
             initDebug.put("Configuration", configFile);
             initDebug.put("Type", wrkld.getDatabaseType());
             initDebug.put("Driver", wrkld.getDriverClass());
+            initDebug.put("Metadata URL", wrkld.getMetadataUrl().orElse("none"));
             initDebug.put("URL", String.join(";", wrkld.getUrls()));
             initDebug.put("Isolation", wrkld.getIsolationString());
             initDebug.put("Batch Size", wrkld.getBatchSize());

@@ -4,12 +4,12 @@
     <!-- Connection details -->
     <type>YUGABYTE</type>
     <driver>org.postgresql.Driver</driver>
-
+    <metadataUrl>jdbc:postgresql://10.0.0.10:5433/postgres?sslmode=disable</metadataUrl>
     <url>
         jdbc:postgresql://localhost:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true
-        <!-- jdbc:postgresql://192.168.50.178:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true
-        jdbc:postgresql://192.168.50.247:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true -->
-    </url>
+        <!-- jdbc:postgresql://10.0.0.20:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true
+        jdbc:postgresql://10.0.0.30:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true -->
+     </url>
 
     <username>postgres</username>
     <password></password>
