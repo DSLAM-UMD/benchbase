@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS remotexact;
-
 DROP TABLE IF EXISTS history_1 CASCADE;
 DROP TABLE IF EXISTS new_order_1 CASCADE;
 DROP TABLE IF EXISTS order_line_1 CASCADE;
@@ -20,6 +18,48 @@ DROP TABLE IF EXISTS warehouse_1 CASCADE;
 
 DROP TABLE IF EXISTS item CASCADE;
 
+DROP TABLESPACE IF EXISTS global;
+DROP TABLESPACE IF EXISTS region_1;
+-- DROP TABLESPACE IF EXISTS region_2;
+
+----------------------------------------------------------------------------------------------------------------
+
+CREATE TABLESPACE global WITH (
+    replica_placement='{"num_replicas": 1,
+    "placement_blocks":[
+        {"cloud":"aws","region":"region-1","zone":"region-1","min_num_replicas":1,"leader_preference":1}
+    ]}'
+);
+
+-- CREATE TABLESPACE global WITH (
+--     replica_placement='{"num_replicas": 2,
+--     "placement_blocks":[
+--         {"cloud":"aws","region":"region-1","zone":"region-1","min_num_replicas":1,"leader_preference":1},
+--         {"cloud":"aws","region":"region-2","zone":"region-2","min_num_replicas":1,"leader_preference":1},
+--     ]}'
+-- );
+
+CREATE TABLESPACE region_1 WITH (
+  replica_placement='{
+    "num_replicas": 1,
+    "placement_blocks": [{"cloud":"aws","region":"region-1","zone":"region-1","min_num_replicas":1}]
+  }'
+);
+
+-- CREATE TABLESPACE region_2 WITH (
+--    replica_placement='{
+--     "num_replicas": 1,
+--     "placement_blocks": [{"cloud":"aws","region":"region-2","zone":"region-2","min_num_replicas":1}]
+--   }'
+--  );
+
+-- CREATE TABLESPACE region_3 WITH (
+--   replica_placement='{
+--     "num_replicas": 1,
+--     "placement_blocks": [{"cloud":"aws","region":"region-3","zone":"region-3","min_num_replicas":1}]
+--   }'
+-- );
+
 ----------------------------------------------------------------------------------------------------------------
 
 CREATE TABLE item (
@@ -29,7 +69,7 @@ CREATE TABLE item (
     i_data  varchar(50)   NOT NULL,
     i_im_id int           NOT NULL,
     PRIMARY KEY (i_id)
-);
+) TABLESPACE global;
 
 ----------------------------------------------------------------------------------------------------------------
 
@@ -44,7 +84,7 @@ CREATE TABLE warehouse_1 (
     w_state    char(2)        NOT NULL,
     w_zip      char(9)        NOT NULL,
     PRIMARY KEY (w_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE stock_1 (
     s_w_id       int           NOT NULL,
@@ -67,7 +107,7 @@ CREATE TABLE stock_1 (
     -- FOREIGN KEY (s_w_id) REFERENCES warehouse_1 (w_id) ON DELETE CASCADE,
     -- FOREIGN KEY (s_i_id) REFERENCES item (i_id) ON DELETE CASCADE,
     PRIMARY KEY (s_w_id, s_i_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE district_1 (
     d_w_id      int            NOT NULL,
@@ -83,7 +123,7 @@ CREATE TABLE district_1 (
     d_zip       char(9)        NOT NULL,
     -- FOREIGN KEY (d_w_id) REFERENCES warehouse_1 (w_id) ON DELETE CASCADE,
     PRIMARY KEY (d_w_id, d_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE customer_1 (
     c_w_id         int            NOT NULL,
@@ -109,7 +149,7 @@ CREATE TABLE customer_1 (
     c_data         varchar(500)   NOT NULL,
     -- FOREIGN KEY (c_w_id, c_d_id) REFERENCES district_1 (d_w_id, d_id) ON DELETE CASCADE,
     PRIMARY KEY (c_w_id, c_d_id, c_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE history_1 (
     h_c_id   int           NOT NULL,
@@ -122,7 +162,7 @@ CREATE TABLE history_1 (
     h_data   varchar(24)   NOT NULL
     -- FOREIGN KEY (h_c_w_id, h_c_d_id, h_c_id) REFERENCES customer_1 (c_w_id, c_d_id, c_id) ON DELETE CASCADE,
     -- FOREIGN KEY (h_w_id, h_d_id) REFERENCES district_1 (d_w_id, d_id) ON DELETE CASCADE
-);
+) TABLESPACE region_1;
 
 CREATE TABLE oorder_1 (
     o_w_id       int       NOT NULL,
@@ -136,7 +176,7 @@ CREATE TABLE oorder_1 (
     PRIMARY KEY (o_w_id, o_d_id, o_id),
     -- FOREIGN KEY (o_w_id, o_d_id, o_c_id) REFERENCES customer_1 (c_w_id, c_d_id, c_id) ON DELETE CASCADE,
     UNIQUE (o_w_id, o_d_id, o_c_id, o_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE new_order_1 (
     no_w_id int NOT NULL,
@@ -144,7 +184,7 @@ CREATE TABLE new_order_1 (
     no_o_id int NOT NULL,
     -- FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder_1 (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
     PRIMARY KEY (no_w_id, no_d_id, no_o_id)
-);
+) TABLESPACE region_1;
 
 CREATE TABLE order_line_1 (
     ol_w_id        int           NOT NULL,
@@ -160,29 +200,9 @@ CREATE TABLE order_line_1 (
     -- FOREIGN KEY (ol_w_id, ol_d_id, ol_o_id) REFERENCES oorder_1 (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
     -- FOREIGN KEY (ol_supply_w_id, ol_i_id) REFERENCES stock_1 (s_w_id, s_i_id) ON DELETE CASCADE,
     PRIMARY KEY (ol_w_id, ol_d_id, ol_o_id, ol_number)
-);
+) TABLESPACE region_1;
 
-CREATE INDEX idx_customer_name_1 ON customer_1 (c_w_id, c_d_id, c_last, c_first);
-
-UPDATE pg_class SET relregion = 1 WHERE relname IN (
-    'warehouse_1',
-    'warehouse_1_pkey',
-    'stock_1',
-    'stock_1_pkey',
-    'district_1',
-    'district_1_pkey',
-    'customer_1',
-    'customer_1_pkey',
-    'history_1',
-    'oorder_1',
-    'oorder_1_pkey',
-    'oorder_1_o_w_id_o_d_id_o_c_id_o_id_key',
-    'new_order_1',
-    'new_order_1_pkey',
-    'order_line_1',
-    'order_line_1_pkey',
-    'idx_customer_name_1'
-);
+CREATE INDEX idx_customer_name_1 ON customer_1 (c_w_id, c_d_id, c_last, c_first) TABLESPACE region_1;
 
 ----------------------------------------------------------------------------------------------------------------
 
@@ -197,7 +217,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     w_state    char(2)        NOT NULL,
 --     w_zip      char(9)        NOT NULL,
 --     PRIMARY KEY (w_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE stock_2 (
 --     s_w_id       int           NOT NULL,
@@ -220,7 +240,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     -- FOREIGN KEY (s_w_id) REFERENCES warehouse_2 (w_id) ON DELETE CASCADE,
 --     -- FOREIGN KEY (s_i_id) REFERENCES item (i_id) ON DELETE CASCADE,
 --     PRIMARY KEY (s_w_id, s_i_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE district_2 (
 --     d_w_id      int            NOT NULL,
@@ -236,7 +256,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     d_zip       char(9)        NOT NULL,
 --     -- FOREIGN KEY (d_w_id) REFERENCES warehouse_2 (w_id) ON DELETE CASCADE,
 --     PRIMARY KEY (d_w_id, d_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE customer_2 (
 --     c_w_id         int            NOT NULL,
@@ -262,7 +282,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     c_data         varchar(500)   NOT NULL,
 --     -- FOREIGN KEY (c_w_id, c_d_id) REFERENCES district_2 (d_w_id, d_id) ON DELETE CASCADE,
 --     PRIMARY KEY (c_w_id, c_d_id, c_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE history_2 (
 --     h_c_id   int           NOT NULL,
@@ -275,7 +295,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     h_data   varchar(24)   NOT NULL
 --     -- FOREIGN KEY (h_c_w_id, h_c_d_id, h_c_id) REFERENCES customer_2 (c_w_id, c_d_id, c_id) ON DELETE CASCADE,
 --     -- FOREIGN KEY (h_w_id, h_d_id) REFERENCES district_2 (d_w_id, d_id) ON DELETE CASCADE
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE oorder_2 (
 --     o_w_id       int       NOT NULL,
@@ -289,7 +309,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     PRIMARY KEY (o_w_id, o_d_id, o_id),
 --     -- FOREIGN KEY (o_w_id, o_d_id, o_c_id) REFERENCES customer_2 (c_w_id, c_d_id, c_id) ON DELETE CASCADE,
 --     UNIQUE (o_w_id, o_d_id, o_c_id, o_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE new_order_2 (
 --     no_w_id int NOT NULL,
@@ -297,7 +317,7 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     no_o_id int NOT NULL,
 --     -- FOREIGN KEY (no_w_id, no_d_id, no_o_id) REFERENCES oorder_2 (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
 --     PRIMARY KEY (no_w_id, no_d_id, no_o_id)
--- );
+-- ) TABLESPACE region_2;
 
 -- CREATE TABLE order_line_2 (
 --     ol_w_id        int           NOT NULL,
@@ -313,28 +333,8 @@ UPDATE pg_class SET relregion = 1 WHERE relname IN (
 --     -- FOREIGN KEY (ol_w_id, ol_d_id, ol_o_id) REFERENCES oorder_2 (o_w_id, o_d_id, o_id) ON DELETE CASCADE,
 --     -- FOREIGN KEY (ol_supply_w_id, ol_i_id) REFERENCES stock_2 (s_w_id, s_i_id) ON DELETE CASCADE,
 --     PRIMARY KEY (ol_w_id, ol_d_id, ol_o_id, ol_number)
--- );
+-- ) TABLESPACE region_2;
 
--- CREATE INDEX idx_customer_name_2 ON customer_2 (c_w_id, c_d_id, c_last, c_first);
-
--- UPDATE pg_class SET relregion = 2 WHERE relname IN (
---     'warehouse_2',
---     'warehouse_2_pkey',
---     'stock_2',
---     'stock_2_pkey',
---     'district_2',
---     'district_2_pkey',
---     'customer_2',
---     'customer_2_pkey',
---     'history_2',
---     'oorder_2',
---     'oorder_2_pkey',
---     'oorder_2_o_w_id_o_d_id_o_c_id_o_id_key',
---     'new_order_2',
---     'new_order_2_pkey',
---     'order_line_2',
---     'order_line_2_pkey',
---     'idx_customer_name_2'
--- );
+-- CREATE INDEX idx_customer_name_2 ON customer_2 (c_w_id, c_d_id, c_last, c_first) TABLESPACE region_2;
 
 -- ----------------------------------------------------------------------------------------------------------------
