@@ -31,6 +31,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class HOTBenchmark extends BenchmarkModule {
 
@@ -120,14 +123,16 @@ public class HOTBenchmark extends BenchmarkModule {
                     .toArray(Partition[]::new);
 
             List<Worker<? extends BenchmarkModule>> workers = new ArrayList<>();
-            for (int i = 0; i < workConf.getTerminals(); ++i) {
-                workers.add(new HOTWorker(this, i, homePartition, otherPartitions));
-            }
+            ForkJoinPool pool = new ForkJoinPool(workConf.getTerminals());
+            List<HOTWorker> hotWorkers = pool.submit(() -> IntStream.range(0, workConf.getTerminals()).parallel().mapToObj(i -> {
+                return new HOTWorker(this, i, homePartition, otherPartitions);
+            }).collect(Collectors.toList())).get();
+            workers.addAll(hotWorkers);
+
             return workers;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-
     }
 
     @Override

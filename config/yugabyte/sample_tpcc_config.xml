@@ -4,17 +4,17 @@
     <!-- Connection details -->
     <type>YUGABYTE</type>
     <driver>org.postgresql.Driver</driver>
+    <metadataUrl>jdbc:postgresql://10.0.0.10:5433/postgres?sslmode=disable</metadataUrl>
     <url>
         jdbc:postgresql://10.0.0.10:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true
         <!-- jdbc:postgresql://10.0.0.20:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true 
         jdbc:postgresql://10.0.0.30:5433/postgres?sslmode=disable&amp;ApplicationName=ycsb&amp;reWriteBatchedInserts=true -->
-    </url>
+     </url>
     
     <username>postgres</username>
     <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
     <batchsize>128</batchsize>
-    <retries>0</retries>
 
     <!-- Scale factor is the number of warehouses in TPCC -->
     <scalefactor>1</scalefactor>
@@ -22,17 +22,17 @@
     <!-- Load data in all partitions -->
     <loadall>true</loadall>
 
-    <!-- Current region -->
+    <!-- The ITEM table is only loaded at the global region and other
+         tables are loaded at the respective region only -->
     <region>1</region>
 
     <!-- The workload -->
-    <terminals>1</terminals>
+    <terminals>10</terminals>
     <works>
         <work>
             <time>10</time>
             <rate>10000</rate>
-            <!-- <weights>45,43,4,4,4</weights> -->
-            <weights>45,43,0,0,0</weights>
+            <weights>45,43,4,4,4</weights>
         </work>
     </works>
 
