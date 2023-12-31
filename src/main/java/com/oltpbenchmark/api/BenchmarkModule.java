@@ -81,6 +81,11 @@ public abstract class BenchmarkModule {
     // --------------------------------------------------------------------------
 
     public final Connection makeConnection() throws SQLException {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            LOG.error(e.getMessage(), e);
+        }
         int urlIndex = urlCounter.getAndIncrement() % workConf.getUrls().size();
         String url = workConf.getUrls().get(urlIndex);
         return makeConnection(url);

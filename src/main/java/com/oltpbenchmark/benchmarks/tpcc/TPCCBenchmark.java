@@ -29,8 +29,12 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class TPCCBenchmark extends BenchmarkModule {
     private static final Logger LOG = LoggerFactory.getLogger(TPCCBenchmark.class);
@@ -105,13 +109,8 @@ public class TPCCBenchmark extends BenchmarkModule {
             return new ArrayList<>();
         }
 
-        TPCCWorker[] terminals = new TPCCWorker[workConf.getTerminals()];
-
         String partition = partitions.getPartition(this.region);
-        int numWarehouses = (int) workConf.getScaleFactor();
-        if (numWarehouses <= 0) {
-            numWarehouses = 1;
-        }
+        final int numWarehouses = Math.max((int) workConf.getScaleFactor(), 1);
 
         int numTerminals = workConf.getTerminals();
 
@@ -120,42 +119,48 @@ public class TPCCBenchmark extends BenchmarkModule {
         // are distributed as
         // 1, 1, 2, 1, 2, 1, 2
         final double terminalsPerWarehouse = (double) numTerminals / numWarehouses;
-        int workerId = 0;
+        AtomicInteger workerId = new AtomicInteger(0);
 
-        for (int w = 0; w < numWarehouses; w++) {
-            // Compute the number of terminals in *this* warehouse
-            int lowerTerminalId = (int) (w * terminalsPerWarehouse);
-            int upperTerminalId = (int) ((w + 1) * terminalsPerWarehouse);
-            // protect against double rounding errors
-            PartitionedWId w_id = new PartitionedWId(partition, w + 1);
-            if (w_id.id == numWarehouses) {
-                upperTerminalId = numTerminals;
-            }
-            int numWarehouseTerminals = upperTerminalId - lowerTerminalId;
+        try {
+            ForkJoinPool pool = new ForkJoinPool(numTerminals);
+            return pool.submit(() ->
+                IntStream.range(0, numWarehouses).parallel().mapToObj(w -> {
+                    int lowerTerminalId = (int) (w * terminalsPerWarehouse);
+                    int upperTerminalId = (int) ((w + 1) * terminalsPerWarehouse);
+                    PartitionedWId w_id = new PartitionedWId(partition, w + 1);
+                    if (w_id.id == numWarehouses) {
+                        upperTerminalId = numTerminals;
+                    }
+                    int numWarehouseTerminals = upperTerminalId - lowerTerminalId;
 
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("w_id %d = %d terminals [lower=%d / upper%d]", w_id, numWarehouseTerminals,
-                        lowerTerminalId, upperTerminalId));
-            }
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("w_id %d = %d terminals [lower=%d / upper%d]", w_id, numWarehouseTerminals,
+                                lowerTerminalId, upperTerminalId));
+                    }
 
-            final double districtsPerTerminal = TPCCConfig.configDistPerWhse / (double) numWarehouseTerminals;
-            for (int terminalId = 0; terminalId < numWarehouseTerminals; terminalId++) {
-                int lowerDistrictId = (int) (terminalId * districtsPerTerminal);
-                int upperDistrictId = (int) ((terminalId + 1) * districtsPerTerminal);
-                if (terminalId + 1 == numWarehouseTerminals) {
-                    upperDistrictId = TPCCConfig.configDistPerWhse;
-                }
-                lowerDistrictId += 1;
+                    final double districtsPerTerminal = TPCCConfig.configDistPerWhse / (double) numWarehouseTerminals;
+                    try {
+                        return pool.submit(() ->
+                            IntStream.range(0, numWarehouseTerminals).parallel().mapToObj(terminalId -> {
+                                int lowerDistrictId = (int) (terminalId * districtsPerTerminal);
+                                int upperDistrictId = (int) ((terminalId + 1) * districtsPerTerminal);
+                                if (terminalId + 1 == numWarehouseTerminals) {
+                                    upperDistrictId = TPCCConfig.configDistPerWhse;
+                                }
+                                lowerDistrictId += 1;
 
-                TPCCWorker terminal = new TPCCWorker(this, workerId++, w_id, lowerDistrictId,
-                        upperDistrictId,
-                        partitions);
-                terminals[lowerTerminalId + terminalId] = terminal;
-            }
-
+                                return new TPCCWorker(this, workerId.getAndIncrement(), w_id, lowerDistrictId,
+                                        upperDistrictId,
+                                        partitions);
+                            })).get();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+            ).get().flatMap(Function.identity()).collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        return Arrays.asList(terminals);
     }
 
 }
