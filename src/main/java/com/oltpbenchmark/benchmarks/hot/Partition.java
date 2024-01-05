@@ -31,7 +31,7 @@ public class Partition {
         this.hot = Math.min(hot, to - from);
         this.distribution = distribution;
         if (distribution == HotDistribution.EVEN) {
-            this.hotInterval = (to - from) / hot;
+            this.hotInterval = hot <= 0 ? -1 : (to - from) / hot;
         }
     }
 
@@ -68,7 +68,7 @@ public class Partition {
 
     public int nextCold(Random rng) {
         checkEmpty();
-        if (to - from - hot <= 0) {
+        if (to - from - hot <= 0 || hot <= 0) {
             return this.next(rng);
         }
         switch (distribution) {
