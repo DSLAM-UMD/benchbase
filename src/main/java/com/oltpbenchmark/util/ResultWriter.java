@@ -66,6 +66,9 @@ public class ResultWriter {
         this.benchType = argsLine.getOptionValue("b");
 
         String dbUrl = expConf.getString("url");
+        if (expConf.containsKey("metadataUrl")) {
+            dbUrl = expConf.getString("metadataUrl");
+        }
         String username = expConf.getString("username");
         String password = expConf.getString("password");
 
