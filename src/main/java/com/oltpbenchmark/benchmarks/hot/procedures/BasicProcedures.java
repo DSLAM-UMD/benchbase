@@ -93,17 +93,18 @@ class BasicProcedures extends Procedure {
                 Timer timer = PrometheusMetrics.STATEMENT_DURATION.labels(
                         "hot",
                         this.getProcedureName(),
-                        "read-modify-write").startTimer();
-                PreparedStatement stmt = this.prepareReadStmt(conn, key);
-                ResultSet r = stmt.executeQuery()) {
-            while (r.next()) {
-                for (int i = 0; i < results.length; i++) {
-                    results[i] = r.getString(i + 1);
+                        "read-modify-write").startTimer()) {
+            try (PreparedStatement stmt = this.prepareReadStmt(conn, key);
+                    ResultSet r = stmt.executeQuery()) {
+                while (r.next()) {
+                    for (int i = 0; i < results.length; i++) {
+                        results[i] = r.getString(i + 1);
+                    }
                 }
             }
-        }
-        try (PreparedStatement stmt = this.prepareUpdateStmt(conn, key, fields)) {
-            stmt.executeUpdate();
+            try (PreparedStatement stmt = this.prepareUpdateStmt(conn, key, fields)) {
+                stmt.executeUpdate();
+            }
         }
     }
 
