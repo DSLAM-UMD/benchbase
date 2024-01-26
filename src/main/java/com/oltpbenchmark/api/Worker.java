@@ -398,6 +398,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      */
     protected final TransactionStatus doWork(DatabaseType databaseType, TransactionType transactionType) {
         TransactionStatus finalStatus = TransactionStatus.UNKNOWN;
+        boolean logRetries = configuration.getLogRetries();
 
         try {
             int retryCount = 0;
@@ -463,9 +464,15 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     conn.rollback();
 
                     if (isRetryable(ex) && !retryIsError) {
-                        LOG.debug(String.format(
+                        String message = String.format(
                                 "Retryable SQLException occurred during [%s]... current retry attempt [%d], max retry attempts [%d], sql state [%s], error code [%d].",
-                                transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode()), ex);
+                                transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode());
+                        
+                        if (logRetries) {
+                            LOG.warn(message + " " + ex.getMessage());
+                        } else {
+                            LOG.debug(message, ex);
+                        }
 
                         status = TransactionStatus.RETRY;
 

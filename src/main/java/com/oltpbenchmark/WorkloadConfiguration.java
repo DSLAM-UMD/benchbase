@@ -40,6 +40,7 @@ public class WorkloadConfiguration {
     private String driverClass;
     private int batchSize;
     private int maxRetries;
+    private boolean logRetries;
     private int randomSeed = -1;
     private double scaleFactor = 1.0;
     private double selectivity = -1.0;
@@ -137,6 +138,14 @@ public class WorkloadConfiguration {
 
     public void setMaxRetries(int maxRetries) {
         this.maxRetries = maxRetries;
+    }
+
+    public boolean getLogRetries() {
+        return logRetries;
+    }
+
+    public void setLogRetries(boolean logRetries) {
+        this.logRetries = logRetries;
     }
 
     /**
