@@ -112,7 +112,7 @@ public class StockLevel extends TPCCProcedure {
             try (ResultSet rs = stockGetCountStock.executeQuery()) {
                 if (!rs.next()) {
                     String msg = String.format(
-                            "Failed to get StockLevel result for COUNT query [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id,
+                            "Failed to get StockLevel result for COUNT query [W_ID=%s, D_ID=%d, O_ID=%d]", w_id, d_id,
                             o_id);
 
                     throw new RuntimeException(msg);

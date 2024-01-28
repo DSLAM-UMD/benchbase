@@ -142,7 +142,7 @@ public class OrderStatus extends TPCCProcedure {
             try (ResultSet rs = ordStatGetNewestOrd.executeQuery()) {
 
                 if (!rs.next()) {
-                    String msg = String.format("No order records for CUSTOMER [C_W_ID=%d, C_D_ID=%d, C_ID=%d]", w_id,
+                    String msg = String.format("No order records for CUSTOMER [C_W_ID=%s, C_D_ID=%d, C_ID=%d]", w_id,
                             d_id, c.c_id);
 
                     throw new RuntimeException(msg);
@@ -198,7 +198,7 @@ public class OrderStatus extends TPCCProcedure {
 
             if (orderLines.isEmpty()) {
                 String msg = String.format(
-                        "Order record had no order line items [C_W_ID=%d, C_D_ID=%d, C_ID=%d, O_ID=%d]", w_id, d_id,
+                        "Order record had no order line items [C_W_ID=%s, C_D_ID=%d, C_ID=%d, O_ID=%d]", w_id, d_id,
                         c.c_id, o_id);
                 LOG.trace(msg);
             }
@@ -229,7 +229,7 @@ public class OrderStatus extends TPCCProcedure {
             try (ResultSet rs = payGetCust.executeQuery()) {
 
                 if (!rs.next()) {
-                    String msg = String.format("Failed to get CUSTOMER [C_W_ID=%d, C_D_ID=%d, C_ID=%d]", c_w_id, c_d_id,
+                    String msg = String.format("Failed to get CUSTOMER [C_W_ID=%s, C_D_ID=%d, C_ID=%d]", c_w_id, c_d_id,
                             c_id);
 
                     throw new RuntimeException(msg);
@@ -278,7 +278,7 @@ public class OrderStatus extends TPCCProcedure {
         }
 
         if (customers.size() == 0) {
-            String msg = String.format("Failed to get CUSTOMER [C_W_ID=%d, C_D_ID=%d, C_LAST=%s]", c_w_id, c_d_id,
+            String msg = String.format("Failed to get CUSTOMER [C_W_ID=%s, C_D_ID=%d, C_LAST=%s]", c_w_id, c_d_id,
                     c_last);
 
             throw new RuntimeException(msg);

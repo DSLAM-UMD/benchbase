@@ -111,7 +111,7 @@ public class Delivery extends TPCCProcedure {
                 if (!rs.next()) {
                     // This district has no new orders. This can happen but should be rare
 
-                    LOG.warn(String.format("District has no new orders [W_ID=%d, D_ID=%d]", w_id, d_id));
+                    LOG.warn(String.format("District has no new orders [W_ID=%s, D_ID=%d]", w_id, d_id));
 
                     return null;
                 }
@@ -144,7 +144,7 @@ public class Delivery extends TPCCProcedure {
                 // error makes this work with MySQL's default consistency.
                 // Careful auditing would be required.
                 String msg = String.format(
-                        "NewOrder delete failed. Not running with SERIALIZABLE isolation? [w_id=%d, d_id=%d, no_o_id=%d]",
+                        "NewOrder delete failed. Not running with SERIALIZABLE isolation? [W_ID=%s, d_id=%d, no_o_id=%d]",
                         w_id, d_id, no_o_id);
                 throw new UserAbortException(msg);
             }
@@ -167,7 +167,7 @@ public class Delivery extends TPCCProcedure {
             try (ResultSet rs = delivGetCustId.executeQuery()) {
 
                 if (!rs.next()) {
-                    String msg = String.format("Failed to retrieve ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id,
+                    String msg = String.format("Failed to retrieve ORDER record [W_ID=%s, D_ID=%d, O_ID=%d]", w_id,
                             d_id, no_o_id);
                     throw new RuntimeException(msg);
                 }
@@ -196,7 +196,7 @@ public class Delivery extends TPCCProcedure {
             int result = delivUpdateCarrierId.executeUpdate();
 
             if (result != 1) {
-                String msg = String.format("Failed to update ORDER record [W_ID=%d, D_ID=%d, O_ID=%d]", w_id, d_id,
+                String msg = String.format("Failed to update ORDER record [W_ID=%s, D_ID=%d, O_ID=%d]", w_id, d_id,
                         no_o_id);
                 throw new RuntimeException(msg);
             }
@@ -222,7 +222,7 @@ public class Delivery extends TPCCProcedure {
             int result = delivUpdateDeliveryDate.executeUpdate();
 
             if (result == 0) {
-                String msg = String.format("Failed to update ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]", w_id,
+                String msg = String.format("Failed to update ORDER_LINE records [W_ID=%s, D_ID=%d, O_ID=%d]", w_id,
                         d_id, no_o_id);
                 throw new RuntimeException(msg);
             }
@@ -245,7 +245,7 @@ public class Delivery extends TPCCProcedure {
 
             try (ResultSet rs = delivSumOrderAmount.executeQuery()) {
                 if (!rs.next()) {
-                    String msg = String.format("Failed to retrieve ORDER_LINE records [W_ID=%d, D_ID=%d, O_ID=%d]",
+                    String msg = String.format("Failed to retrieve ORDER_LINE records [W_ID=%s, D_ID=%d, O_ID=%d]",
                             w_id, d_id, no_o_id);
                     throw new RuntimeException(msg);
                 }
@@ -277,7 +277,7 @@ public class Delivery extends TPCCProcedure {
             int result = delivUpdateCustBalDelivCnt.executeUpdate();
 
             if (result == 0) {
-                String msg = String.format("Failed to update CUSTOMER record [W_ID=%d, D_ID=%d, C_ID=%d]", w_id, d_id,
+                String msg = String.format("Failed to update CUSTOMER record [W_ID=%s, D_ID=%d, C_ID=%d]", w_id, d_id,
                         c_id);
                 throw new RuntimeException(msg);
             }
