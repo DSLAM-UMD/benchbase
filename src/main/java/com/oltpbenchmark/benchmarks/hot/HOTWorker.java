@@ -63,42 +63,66 @@ class HOTWorker extends Worker<HOTBenchmark> {
                 makeEntry(WorkloadA3.class, 3),
                 makeEntry(WorkloadA4.class, 4),
                 makeEntry(WorkloadA5.class, 5),
-                makeEntry(WorkloadA6.class, 6));
+                makeEntry(WorkloadA6.class, 6),
+                makeEntry(WorkloadA7.class, 7),
+                makeEntry(WorkloadA8.class, 8),
+                makeEntry(WorkloadA9.class, 9),
+                makeEntry(WorkloadA10.class, 10));
         this.workloadBs = Map.ofEntries(
                 makeEntry(WorkloadB1.class, 1),
                 makeEntry(WorkloadB2.class, 2),
                 makeEntry(WorkloadB3.class, 3),
                 makeEntry(WorkloadB4.class, 4),
                 makeEntry(WorkloadB5.class, 5),
-                makeEntry(WorkloadB6.class, 6));
+                makeEntry(WorkloadB6.class, 6),
+                makeEntry(WorkloadB7.class, 7),
+                makeEntry(WorkloadB8.class, 8),
+                makeEntry(WorkloadB9.class, 9),
+                makeEntry(WorkloadB10.class, 10));
         this.workloadCs = Map.ofEntries(
                 makeEntry(WorkloadC1.class, 1),
                 makeEntry(WorkloadC2.class, 2),
                 makeEntry(WorkloadC3.class, 3),
                 makeEntry(WorkloadC4.class, 4),
                 makeEntry(WorkloadC5.class, 5),
-                makeEntry(WorkloadC6.class, 6));
+                makeEntry(WorkloadC6.class, 6),
+                makeEntry(WorkloadC7.class, 7),
+                makeEntry(WorkloadC8.class, 8),
+                makeEntry(WorkloadC9.class, 9),
+                makeEntry(WorkloadC10.class, 10));
         this.workloadDs = Map.ofEntries(
                 makeEntry(WorkloadD1.class, 1),
                 makeEntry(WorkloadD2.class, 2),
                 makeEntry(WorkloadD3.class, 3),
                 makeEntry(WorkloadD4.class, 4),
                 makeEntry(WorkloadD5.class, 5),
-                makeEntry(WorkloadD6.class, 6));
+                makeEntry(WorkloadD6.class, 6),
+                makeEntry(WorkloadD7.class, 7),
+                makeEntry(WorkloadD8.class, 8),
+                makeEntry(WorkloadD9.class, 9),
+                makeEntry(WorkloadD10.class, 10));
         this.workloadEs = Map.ofEntries(
                 makeEntry(WorkloadE1.class, 1),
                 makeEntry(WorkloadE2.class, 2),
                 makeEntry(WorkloadE3.class, 3),
                 makeEntry(WorkloadE4.class, 4),
                 makeEntry(WorkloadE5.class, 5),
-                makeEntry(WorkloadE6.class, 6));
+                makeEntry(WorkloadE6.class, 6),
+                makeEntry(WorkloadE7.class, 7),
+                makeEntry(WorkloadE8.class, 8),
+                makeEntry(WorkloadE9.class, 9),
+                makeEntry(WorkloadE10.class, 10));
         this.workloadFs = Map.ofEntries(
                 makeEntry(WorkloadF1.class, 1),
                 makeEntry(WorkloadF2.class, 2),
                 makeEntry(WorkloadF3.class, 3),
                 makeEntry(WorkloadF4.class, 4),
                 makeEntry(WorkloadF5.class, 5),
-                makeEntry(WorkloadF6.class, 6));
+                makeEntry(WorkloadF6.class, 6),
+                makeEntry(WorkloadF7.class, 7),
+                makeEntry(WorkloadF8.class, 8),
+                makeEntry(WorkloadF9.class, 9),
+                makeEntry(WorkloadF10.class, 10));
     }
 
     private <T extends Procedure> Map.Entry<Class<? extends Procedure>, SimpleEntry<Integer, T>> makeEntry(
