@@ -18,17 +18,54 @@
 
 package com.oltpbenchmark.util;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class RandomGenerator extends Random {
+public class RandomGenerator extends java.util.Random {
 
     /**
      * Constructor
-     *
-     * @param seed
      */
-    public RandomGenerator(int seed) {
-        super(seed);
+    public RandomGenerator() {
+    }
+
+    @Override
+    protected int next(int bits) {
+        return ThreadLocalRandom.current().nextInt() >>> (32 - bits);
+    }
+
+    @Override
+    public int nextInt() {
+        return ThreadLocalRandom.current().nextInt();
+    }
+
+    @Override
+    public int nextInt(int bound) {
+        return ThreadLocalRandom.current().nextInt(bound);
+    }
+
+    @Override
+    public long nextLong() {
+        return ThreadLocalRandom.current().nextLong();
+    }
+
+    @Override
+    public boolean nextBoolean() {
+        return ThreadLocalRandom.current().nextBoolean();
+    }
+
+    @Override
+    public float nextFloat() {
+        return ThreadLocalRandom.current().nextFloat();
+    }
+
+    @Override
+    public double nextDouble() {
+        return ThreadLocalRandom.current().nextDouble();
+    }
+
+    @Override
+    public double nextGaussian() {
+        return ThreadLocalRandom.current().nextGaussian();
     }
 
     /**
@@ -41,7 +78,7 @@ public class RandomGenerator extends Random {
     public int number(int minimum, int maximum) {
 
         int range_size = maximum - minimum + 1;
-        int value = this.nextInt(range_size);
+        int value = ThreadLocalRandom.current().nextInt(range_size);
         value += minimum;
 
         return value;
@@ -61,7 +98,7 @@ public class RandomGenerator extends Random {
         // error checking and 2^x checking removed for simplicity.
         long bits, val;
         do {
-            bits = (this.nextLong() << 1) >>> 1;
+            bits = (ThreadLocalRandom.current().nextLong() << 1) >>> 1;
             val = bits % range_size;
         }
         while (bits - val + range_size < 0L);
