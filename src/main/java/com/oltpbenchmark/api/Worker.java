@@ -32,7 +32,10 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
@@ -66,6 +69,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
     private final Histogram<TransactionType> txnRetry = new Histogram<>();
     private final Histogram<TransactionType> txnErrors = new Histogram<>();
     private final Histogram<TransactionType> txtRetryDifferent = new Histogram<>();
+
+    private final Errors errors = new Errors("transaction", "sql_state", "error_code", "will_retry");
 
     private boolean seenDone = false;
 
@@ -171,6 +176,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
     public final Histogram<TransactionType> getTransactionRetryDifferentHistogram() {
         return (this.txtRetryDifferent);
+    }
+
+    public final Errors getErrors() {
+        return errors;
     }
 
     /**
@@ -475,14 +484,17 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         }
 
                         status = TransactionStatus.RETRY;
-
                         retryCount++;
+                        
+                        errors.addError(ex.getMessage(), parseError(transactionType, ex, retryCount < maxRetryCount));
                     } else {
                         LOG.warn(
                                 "SQLException occurred during [{}] and will not be retried. sql state [{}], error code [{}]. {}",
                                 transactionType, ex.getSQLState(), ex.getErrorCode(), ex.getMessage());
-
+                        
                         status = TransactionStatus.ERROR;
+
+                        errors.addError(ex.getMessage(), parseError(transactionType, ex, false));
 
                         break;
                     }
@@ -558,6 +570,11 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      */
     protected void initialize() {
         // The default is to do nothing
+    }
+
+    protected List<String> parseError(TransactionType txnType, SQLException ex, boolean willRetry) {
+        String errorCode = Integer.toString(ex.getErrorCode());
+        return new ArrayList<String>(Arrays.asList(txnType.getName(), ex.getSQLState(), errorCode, Boolean.toString(willRetry)));
     }
 
     /**

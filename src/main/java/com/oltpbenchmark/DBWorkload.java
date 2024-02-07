@@ -640,6 +640,12 @@ public class DBWorkload {
             rw.writeResults(windowSize, ps);
         }
 
+        String errorsFileName = baseFileName + ".errors.csv";
+        try (PrintStream ps = new PrintStream(FileUtil.joinPath(outputDirectory, errorsFileName))) {
+            LOG.info("Output errors into file: {}", errorsFileName);
+            rw.writeErrors(ps);
+        }   
+
         for (TransactionType t : activeTXTypes) {
             String fileName = baseFileName + ".results." + t.getName() + ".csv";
             try (PrintStream ps = new PrintStream(FileUtil.joinPath(outputDirectory, fileName))) {

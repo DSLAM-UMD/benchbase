@@ -39,6 +39,7 @@ public final class Results {
     private final Histogram<TransactionType> error = new Histogram<>(false);
     private final Histogram<TransactionType> retryDifferent = new Histogram<>(false);
     private final Map<TransactionType, Histogram<String>> abortMessages = new HashMap<>();
+    private final Errors detailedErrors = new Errors();
 
     public Results(long nanoseconds, int measuredRequests, DistributionStatistics distributionStatistics, final List<LatencyRecord.Sample> latencySamples) {
         this.nanoseconds = nanoseconds;
@@ -80,6 +81,10 @@ public final class Results {
 
     public Histogram<TransactionType> getRetryDifferent() {
         return retryDifferent;
+    }
+
+    public Errors getDetailedErrors() {
+        return detailedErrors;
     }
 
     public Map<TransactionType, Histogram<String>> getAbortMessages() {

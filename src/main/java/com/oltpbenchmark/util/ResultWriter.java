@@ -18,6 +18,7 @@
 package com.oltpbenchmark.util;
 
 import com.oltpbenchmark.DistributionStatistics;
+import com.oltpbenchmark.Errors;
 import com.oltpbenchmark.LatencyRecord;
 import com.oltpbenchmark.Results;
 import com.oltpbenchmark.ThreadBench;
@@ -230,5 +231,13 @@ public class ResultWriter {
         }
     }
 
+    public void writeErrors(PrintStream out) {
+        Errors errors = results.getDetailedErrors();
+        List<String> header = errors.getHeaders();
+        out.println(StringUtil.join(",", header));
+        for (List<String> row : errors.getRows()) {
+            out.println(StringUtil.join(",", row));
+        }
+    }
 
 }

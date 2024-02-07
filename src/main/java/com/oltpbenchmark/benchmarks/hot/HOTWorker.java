@@ -27,7 +27,10 @@ import com.oltpbenchmark.util.TextGenerator;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.Map.entry;
@@ -41,6 +44,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
     private final Partition[] otherPartitions;
     private final int keysPerTxn;
     private final int maxScanCount;
+    private final Integer region;
 
     private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadA>> workloadAs;
     private final Map<Class<? extends Procedure>, SimpleEntry<Integer, WorkloadB>> workloadBs;
@@ -56,6 +60,7 @@ class HOTWorker extends Worker<HOTBenchmark> {
         this.otherPartitions = otherPartitions;
         this.keysPerTxn = benchmarkModule.keysPerTxn;
         this.maxScanCount = benchmarkModule.maxScanCount;
+        this.region = benchmarkModule.region;
 
         this.workloadAs = Map.ofEntries(
                 makeEntry(WorkloadA1.class, 1),
@@ -129,6 +134,50 @@ class HOTWorker extends Worker<HOTBenchmark> {
             Class<? extends T> procClass,
             int numPartitions) {
         return entry(procClass, new SimpleEntry<>(numPartitions, this.getProcedure(procClass)));
+    }
+
+    @Override
+    protected void initialize() {
+        this.getErrors().extendKeyNames("deadlock", "region", "validation");
+    }
+
+    private final Pattern deadlockPattern = Pattern.compile("deadlock");
+    private final Pattern regionPattern = Pattern.compile("Region ([0-9]+)");
+    private final Pattern validationPattern = Pattern.compile("out-of-date (index|table|tuple)");
+
+    protected List<String> parseError(TransactionType txnType, SQLException ex, boolean willRetry) {
+        List<String> errors = super.parseError(txnType, ex, willRetry);
+        String message = ex.getMessage();
+
+        // Check whether this error is a deadlock
+        Matcher deadlockMatcher = deadlockPattern.matcher(message);
+        Boolean deadlockFound = deadlockMatcher.find();
+        errors.add(deadlockFound.toString());
+
+        // Check the region this error comes from
+        Matcher regionMatcher = regionPattern.matcher(message);
+        if (regionMatcher.find()) {
+            // Add region
+            errors.add(regionMatcher.group(1));
+
+            // Add the type of validation error
+            if (deadlockFound) {
+                errors.add("deadlock");
+            } else {
+                Matcher validationMatcher = validationPattern.matcher(message);
+                if (validationMatcher.find()) {
+                    errors.add(validationMatcher.group(1));
+                } else {
+                    errors.add("null");
+                }
+            }
+        } else {
+            // Error happens in the local region
+            errors.add(this.region.toString());
+            errors.add("null");
+        }
+        
+        return errors;
     }
 
     @Override
