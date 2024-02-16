@@ -486,15 +486,19 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         status = TransactionStatus.RETRY;
                         retryCount++;
                         
-                        errors.addError(ex.getMessage(), parseError(transactionType, ex, retryCount < maxRetryCount));
+                        if (this.workloadState.getGlobalState() == State.MEASURE) {
+                            errors.addError(ex.getMessage(), parseError(transactionType, ex, retryCount < maxRetryCount));
+                        }
                     } else {
                         LOG.warn(
                                 "SQLException occurred during [{}] and will not be retried. sql state [{}], error code [{}]. {}",
                                 transactionType, ex.getSQLState(), ex.getErrorCode(), ex.getMessage());
                         
                         status = TransactionStatus.ERROR;
-
-                        errors.addError(ex.getMessage(), parseError(transactionType, ex, false));
+                        
+                        if (this.workloadState.getGlobalState() == State.MEASURE) {
+                            errors.addError(ex.getMessage(), parseError(transactionType, ex, false));
+                        }
 
                         break;
                     }
@@ -509,13 +513,15 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         }
                     }
 
-                    switch (status) {
-                        case UNKNOWN -> this.txnUnknown.put(transactionType);
-                        case SUCCESS -> this.txnSuccess.put(transactionType);
-                        case USER_ABORTED -> this.txnAbort.put(transactionType);
-                        case RETRY -> this.txnRetry.put(transactionType);
-                        case RETRY_DIFFERENT -> this.txtRetryDifferent.put(transactionType);
-                        case ERROR -> this.txnErrors.put(transactionType);
+                    if (this.workloadState.getGlobalState() == State.MEASURE) {    
+                        switch (status) {
+                            case UNKNOWN -> this.txnUnknown.put(transactionType);
+                            case SUCCESS -> this.txnSuccess.put(transactionType);
+                            case USER_ABORTED -> this.txnAbort.put(transactionType);
+                            case RETRY -> this.txnRetry.put(transactionType);
+                            case RETRY_DIFFERENT -> this.txtRetryDifferent.put(transactionType);
+                            case ERROR -> this.txnErrors.put(transactionType);
+                        }
                     }
 
                     PrometheusMetrics.TXNS.labels(this.benchmark.getBenchmarkName(), transactionType.getName(),
