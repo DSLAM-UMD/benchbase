@@ -49,8 +49,8 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
     }
 
-    public void addLatency(int transType, long startNanosecond, long endNanosecond, int workerId, int phaseId) {
-
+    public void addLatency(int transType, long startNanosecond, long endNanosecond, int workerId, int phaseId,
+            int transactionStatus) {
 
         if (nextIndex == ALLOC_SIZE) {
             allocateChunk();
@@ -61,8 +61,8 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
         int latencyMicroseconds = (int) ((endNanosecond - startNanosecond + 500) / 1000);
 
-
-        chunk[nextIndex] = new Sample(transType, startOffsetNanosecond, latencyMicroseconds, workerId, phaseId);
+        chunk[nextIndex] = new Sample(transType, startOffsetNanosecond, latencyMicroseconds, workerId, phaseId,
+                transactionStatus);
         ++nextIndex;
 
         lastNanosecond += startOffsetNanosecond;
@@ -94,13 +94,16 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
         private final int latencyMicrosecond;
         private final int workerId;
         private final int phaseId;
+        private final int transactionStatus;
 
-        public Sample(int transactionType, long startNanosecond, int latencyMicrosecond, int workerId, int phaseId) {
+        public Sample(int transactionType, long startNanosecond, int latencyMicrosecond, int workerId, int phaseId,
+                int transactionStatus) {
             this.transactionType = transactionType;
             this.startNanosecond = startNanosecond;
             this.latencyMicrosecond = latencyMicrosecond;
             this.workerId = workerId;
             this.phaseId = phaseId;
+            this.transactionStatus = transactionStatus;
         }
 
         public int getTransactionType() {
@@ -121,6 +124,10 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
         public int getPhaseId() {
             return phaseId;
+        }
+
+        public int getTransactionStatus() {
+            return transactionStatus;
         }
 
         @Override

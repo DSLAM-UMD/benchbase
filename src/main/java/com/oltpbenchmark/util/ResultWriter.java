@@ -26,6 +26,8 @@ import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.collectors.DBParameterCollector;
 import com.oltpbenchmark.api.collectors.DBParameterCollectorGen;
 import com.oltpbenchmark.types.DatabaseType;
+import com.oltpbenchmark.types.TransactionStatus;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
@@ -212,7 +214,8 @@ public class ResultWriter {
                 "Start Time (microseconds)",
                 "Latency (microseconds)",
                 "Worker Id (start number)",
-                "Phase Id (index in config file)"
+                "Phase Id (index in config file)",
+                "Transaction Status"
         };
         out.println(StringUtil.join(",", header));
         for (LatencyRecord.Sample s : results.getLatencySamples()) {
@@ -226,6 +229,7 @@ public class ResultWriter {
                     Integer.toString(s.getLatencyMicrosecond()),
                     Integer.toString(s.getWorkerId()),
                     Integer.toString(s.getPhaseId()),
+                    TransactionStatus.values()[s.getTransactionStatus()].toString(),
             };
             out.println(StringUtil.join(",", row));
         }

@@ -320,7 +320,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                             break;
                         }
                         if (preState == MEASURE && postPhase.getId() == prePhase.getId()) {
-                            latencies.addLatency(transactionType.getId(), start, end, this.id, prePhase.getId());
+                            latencies.addLatency(transactionType.getId(), start, end, this.id, prePhase.getId(),
+                                    status.ordinal());
                             intervalRequests.incrementAndGet();
 
                             PrometheusMetrics.TXN_DURATION.labels(this.benchmark.getBenchmarkName(),
@@ -476,7 +477,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         String message = String.format(
                                 "Retryable SQLException occurred during [%s]... current retry attempt [%d], max retry attempts [%d], sql state [%s], error code [%d].",
                                 transactionType, retryCount, maxRetryCount, ex.getSQLState(), ex.getErrorCode());
-                        
+
                         if (logRetries) {
                             LOG.warn(message + " " + ex.getMessage());
                         } else {
@@ -485,17 +486,18 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
                         status = TransactionStatus.RETRY;
                         retryCount++;
-                        
+
                         if (this.workloadState.getGlobalState() == State.MEASURE) {
-                            errors.addError(ex.getMessage(), parseError(transactionType, ex, retryCount < maxRetryCount));
+                            errors.addError(ex.getMessage(),
+                                    parseError(transactionType, ex, retryCount < maxRetryCount));
                         }
                     } else {
                         LOG.warn(
                                 "SQLException occurred during [{}] and will not be retried. sql state [{}], error code [{}]. {}",
                                 transactionType, ex.getSQLState(), ex.getErrorCode(), ex.getMessage());
-                        
+
                         status = TransactionStatus.ERROR;
-                        
+
                         if (this.workloadState.getGlobalState() == State.MEASURE) {
                             errors.addError(ex.getMessage(), parseError(transactionType, ex, false));
                         }
@@ -513,7 +515,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                         }
                     }
 
-                    if (this.workloadState.getGlobalState() == State.MEASURE) {    
+                    if (this.workloadState.getGlobalState() == State.MEASURE) {
                         switch (status) {
                             case UNKNOWN -> this.txnUnknown.put(transactionType);
                             case SUCCESS -> this.txnSuccess.put(transactionType);
